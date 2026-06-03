@@ -9,15 +9,11 @@ export default function LandingPage({ onSignIn, onSignUp }) {
       {/* HEADER SECTION */}
       <header className="landing-header">
         <div className="landing-logo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="url(#logoGradTrackWise)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 24, height: 24 }}>
-            <defs>
-              <linearGradient id="logoGradTrackWise" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="#10b981" />
-                <stop offset="100%" stopColor="#e2b842" />
-              </linearGradient>
-            </defs>
-            <path d="M12 2L2 22l10-4 10 4L12 2z" strokeWidth="1.5" strokeDasharray="2 2"/>
-            <path d="M12 18V9M8 18v-4M16 18v-7" strokeWidth="2"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 24, height: 24 }}>
+            <path d="M12 2L2 22l10-4 10 4L12 2z" stroke="var(--primary)" strokeWidth="1.5" strokeDasharray="2 2"/>
+            <path d="M12 18V9" stroke="var(--primary)" strokeWidth="2"/>
+            <path d="M8 18v-4" stroke="var(--accent-blue)" strokeWidth="2"/>
+            <path d="M16 18v-7" stroke="var(--accent-gold)" strokeWidth="2"/>
           </svg>
           <span className="logo-text">TrackWise</span>
         </div>
@@ -148,9 +144,11 @@ export default function LandingPage({ onSignIn, onSignUp }) {
                   <div className="mock-pdf-stripe"></div>
                   <div className="mock-pdf-content">
                     <div className="mock-pdf-logo">
-                      <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.2" style={{ width: 32, height: 32 }}>
-                        <path d="M12 2L2 22l10-4 10 4L12 2z" strokeWidth="1.5" strokeDasharray="2 2"/>
-                        <path d="M12 18V9M8 18v-4M16 18v-7" strokeWidth="2"/>
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" style={{ width: 32, height: 32 }}>
+                        <path d="M12 2L2 22l10-4 10 4L12 2z" stroke="var(--primary)" strokeWidth="1.5" strokeDasharray="2 2"/>
+                        <path d="M12 18V9" stroke="var(--primary)" strokeWidth="2"/>
+                        <path d="M8 18v-4" stroke="var(--accent-blue)" strokeWidth="2"/>
+                        <path d="M16 18v-7" stroke="var(--accent-gold)" strokeWidth="2"/>
                       </svg>
                     </div>
                     <h3>PERSONAL FINANCIAL REPORT</h3>
@@ -305,9 +303,11 @@ export default function LandingPage({ onSignIn, onSignUp }) {
         <div className="footer-columns">
           <div className="footer-brand-col">
             <div className="footer-logo">
-              <svg viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="2.2" style={{ width: 20, height: 20 }}>
-                <path d="M12 2L2 22l10-4 10 4L12 2z" strokeWidth="1.5" strokeDasharray="2 2"/>
-                <path d="M12 18V9M8 18v-4M16 18v-7" strokeWidth="2"/>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
+                <path d="M12 2L2 22l10-4 10 4L12 2z" stroke="var(--primary)" strokeWidth="1.5" strokeDasharray="2 2"/>
+                <path d="M12 18V9" stroke="var(--primary)" strokeWidth="2"/>
+                <path d="M8 18v-4" stroke="var(--accent-blue)" strokeWidth="2"/>
+                <path d="M16 18v-7" stroke="var(--accent-gold)" strokeWidth="2"/>
               </svg>
               <span>TrackWise</span>
             </div>

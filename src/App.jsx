@@ -113,13 +113,37 @@ function getCategoryDetails(category) {
   return CATEGORY_DETAILS[category] || CATEGORY_DETAILS.Default
 }
 
+function getMerchantAvatar(title, category) {
+  const initials = title
+    ? title
+        .split(" ")
+        .filter(Boolean)
+        .map((w) => w[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase()
+    : "TX";
+  const cat = getCategoryDetails(category);
+  return (
+    <div
+      className="merchant-avatar"
+      style={{
+        background: `linear-gradient(135deg, ${cat.color}dd, ${cat.color}55)`,
+        color: '#ffffff'
+      }}
+    >
+      {initials}
+    </div>
+  );
+}
+
 function App() {
 
   const [currentPage, setCurrentPage] = useState("landing")
 
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("expense_tracker_dark_mode");
-    return saved !== null ? JSON.parse(saved) : true;
+    return saved !== null ? JSON.parse(saved) : false;
   })
 
   const [email, setEmail] = useState("")
@@ -155,6 +179,27 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     return localStorage.getItem("expense_tracker_sidebar_collapsed") === "true";
   })
+
+  // QUICK ADD MODAL & SMART DEFAULT STATES
+  const [showQuickAdd, setShowQuickAdd] = useState(false)
+  const [advancedQuickAdd, setAdvancedQuickAdd] = useState(false)
+
+  const getMostFrequentCategory = () => {
+    if (expenses.length === 0) return "Food";
+    const counts = {};
+    expenses.forEach(e => {
+      counts[e.category] = (counts[e.category] || 0) + 1;
+    });
+    let maxCat = "Food";
+    let maxCount = 0;
+    Object.keys(counts).forEach(cat => {
+      if (counts[cat] > maxCount) {
+        maxCount = counts[cat];
+        maxCat = cat;
+      }
+    });
+    return maxCat;
+  };
 
   async function handleSignup() {
 
@@ -394,6 +439,48 @@ function App() {
 
     fetchExpenses(activeUid)
 
+  }
+
+  async function handleQuickAddSave() {
+    const amt = expenseAmount;
+    if (!amt || Number(amt) <= 0) {
+      alert("Please enter a valid amount.");
+      return;
+    }
+
+    const cat = expenseCategory || getMostFrequentCategory();
+    const title = expenseTitle.trim() || `${cat} Expense`;
+    const date = expenseDate || new Date().toISOString().slice(0, 10);
+
+    const activeUid = currentUser?.uid || auth.currentUser?.uid;
+    if (!activeUid) {
+      alert("User session not found");
+      return;
+    }
+
+    try {
+      await addDoc(
+        collection(db, "expenses"),
+        {
+          title: title,
+          amount: amt,
+          category: cat,
+          date: date,
+          uid: activeUid
+        }
+      );
+
+      setExpenseTitle("");
+      setExpenseAmount("");
+      setExpenseCategory("");
+      setExpenseDate("");
+      setAdvancedQuickAdd(false);
+      setShowQuickAdd(false);
+
+      fetchExpenses(activeUid);
+    } catch (error) {
+      alert("Failed to save expense: " + error.message);
+    }
   }
 
   async function handleDeleteExpense(id) {
@@ -999,147 +1086,237 @@ function App() {
       )}
 
       {currentPage === "login" && (
-
-        <div className="auth-page-wrapper">
-
-          <div className="glass-card">
-
-            <h1>Orbit Wealth</h1>
-
-            <p className="subtitle">
-              Personal Financial Cockpit
-            </p>
-
-            <div className="input-group">
-              <label className="input-label">Email</label>
-              <input
-                type="email"
-                placeholder="name@email.com"
-                value={email}
-                onChange={(e) =>
-                  setEmail(e.target.value)
-                }
-              />
+        <div className="auth-split-container">
+          {/* Left panel: Brand and Marketing info */}
+          <div className="auth-marketing-side">
+            <div className="auth-marketing-header">
+              <svg viewBox="0 0 24 24" fill="none" stroke="url(#marketingLogoGrad)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 28, height: 28 }}>
+                <defs>
+                  <linearGradient id="marketingLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#10b981" />
+                    <stop offset="100%" stopColor="#3b82f6" />
+                  </linearGradient>
+                </defs>
+                <path d="M12 2L2 22l10-4 10 4L12 2z" strokeWidth="1.5" strokeDasharray="2 2"/>
+                <path d="M12 18V9M8 18v-4M16 18v-7" strokeWidth="2"/>
+              </svg>
+              <span className="auth-marketing-brand">TrackWise</span>
             </div>
 
-            <div className="input-group">
-              <label className="input-label">Password</label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) =>
-                  setPassword(
-                    e.target.value
-                  )
-                }
-              />
+            <div className="auth-marketing-body">
+              <h1 className="auth-marketing-title">
+                Track smarter.<br />Spend <span>wiser.</span>
+              </h1>
+              
+              <div className="auth-marketing-features">
+                <div className="auth-feature-item">
+                  <div className="auth-feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 14, height: 14 }}>
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <div className="auth-feature-text">
+                    <h4>Fast Expense Entry V2</h4>
+                    <p>Record transactions in 5 seconds with category pills and smart pre-filled defaults.</p>
+                  </div>
+                </div>
+
+                <div className="auth-feature-item">
+                  <div className="auth-feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 14, height: 14 }}>
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <div className="auth-feature-text">
+                    <h4>High-Density Cockpit</h4>
+                    <p>Track available budget, monthly spending, savings rate, and your live health score.</p>
+                  </div>
+                </div>
+
+                <div className="auth-feature-item">
+                  <div className="auth-feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 14, height: 14 }}>
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <div className="auth-feature-text">
+                    <h4>Executive PDF Statements</h4>
+                    <p>Export beautiful, detailed cover pages, financial charts, and transaction ledgers.</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <button
-              onClick={handleLogin}
-            >
-              Sign In
-            </button>
-
-            <p className="switch-text">
-
-              New here?
-
-              <span
-                onClick={() =>
-                  setCurrentPage(
-                    "signup"
-                  )
-                }
-              >
-                Sign Up
-              </span>
-
-            </p>
-
+            <div className="auth-marketing-footer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <span style={{ color: '#94a3b8' }}>Secure authentication powered by Firebase</span>
+            </div>
           </div>
 
-        </div>
+          {/* Right panel: Login Form */}
+          <div className="auth-form-side">
+            <div className="auth-form-card">
+              <h2>Welcome to TrackWise</h2>
+              <p className="subtitle">Sign in to your financial cockpit</p>
 
+              <div className="input-group">
+                <label className="input-label">Email Address</label>
+                <input
+                  type="email"
+                  placeholder="name@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">Password</label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+
+              <button onClick={handleLogin}>
+                Sign In
+              </button>
+
+              <p className="switch-text" style={{ marginTop: 24, textAlign: 'center', fontSize: '0.9rem', color: 'var(--subtext)' }}>
+                New to TrackWise?{' '}
+                <span
+                  style={{ color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                  onClick={() => setCurrentPage("signup")}
+                >
+                  Create an account
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
       {currentPage === "signup" && (
-
-        <div className="auth-page-wrapper">
-
-          <div className="glass-card">
-
-            <h1>Create Account</h1>
-
-            <p className="subtitle">
-              Manage your wealth intelligently
-            </p>
-
-            <div className="input-group">
-              <label className="input-label">Name</label>
-              <input
-                type="text"
-                placeholder="Your Name"
-                value={name}
-                onChange={(e) =>
-                  setName(e.target.value)
-                }
-              />
+        <div className="auth-split-container">
+          {/* Left panel: Brand and Marketing info */}
+          <div className="auth-marketing-side">
+            <div className="auth-marketing-header">
+              <svg viewBox="0 0 24 24" fill="none" stroke="url(#marketingLogoGrad)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 28, height: 28 }}>
+                <path d="M12 2L2 22l10-4 10 4L12 2z" strokeWidth="1.5" strokeDasharray="2 2"/>
+                <path d="M12 18V9M8 18v-4M16 18v-7" strokeWidth="2"/>
+              </svg>
+              <span className="auth-marketing-brand">TrackWise</span>
             </div>
 
-            <div className="input-group">
-              <label className="input-label">Email</label>
-              <input
-                type="email"
-                placeholder="name@email.com"
-                value={email}
-                onChange={(e) =>
-                  setEmail(e.target.value)
-                }
-              />
+            <div className="auth-marketing-body">
+              <h1 className="auth-marketing-title">
+                Track smarter.<br />Spend <span>wiser.</span>
+              </h1>
+              
+              <div className="auth-marketing-features">
+                <div className="auth-feature-item">
+                  <div className="auth-feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 14, height: 14 }}>
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <div className="auth-feature-text">
+                    <h4>Fast Expense Entry V2</h4>
+                    <p>Record transactions in 5 seconds with category pills and smart pre-filled defaults.</p>
+                  </div>
+                </div>
+
+                <div className="auth-feature-item">
+                  <div className="auth-feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 14, height: 14 }}>
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <div className="auth-feature-text">
+                    <h4>High-Density Cockpit</h4>
+                    <p>Track available budget, monthly spending, savings rate, and your live health score.</p>
+                  </div>
+                </div>
+
+                <div className="auth-feature-item">
+                  <div className="auth-feature-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 14, height: 14 }}>
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </div>
+                  <div className="auth-feature-text">
+                    <h4>Executive PDF Statements</h4>
+                    <p>Export beautiful, detailed cover pages, financial charts, and transaction ledgers.</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div className="input-group">
-              <label className="input-label">Password</label>
-              <input
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) =>
-                  setPassword(
-                    e.target.value
-                  )
-                }
-              />
+            <div className="auth-marketing-footer">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ width: 14, height: 14 }}>
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              <span style={{ color: '#94a3b8' }}>Secure authentication powered by Firebase</span>
             </div>
-
-            <button
-              onClick={handleSignup}
-            >
-              Create Account
-            </button>
-
-            <p className="switch-text">
-
-              Already have an account?
-
-              <span
-                onClick={() =>
-                  setCurrentPage(
-                    "login"
-                  )
-                }
-              >
-                Sign In
-              </span>
-
-            </p>
-
           </div>
 
-        </div>
+          {/* Right panel: Signup Form */}
+          <div className="auth-form-side">
+            <div className="auth-form-card">
+              <h2>Create Account</h2>
+              <p className="subtitle">Manage your wealth intelligently</p>
 
+              <div className="input-group">
+                <label className="input-label">Full Name</label>
+                <input
+                  type="text"
+                  placeholder="Your Name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">Email Address</label>
+                <input
+                  type="email"
+                  placeholder="name@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+
+              <div className="input-group">
+                <label className="input-label">Password</label>
+                <input
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+
+              <button onClick={handleSignup}>
+                Create Account
+              </button>
+
+              <p className="switch-text" style={{ marginTop: 24, textAlign: 'center', fontSize: '0.9rem', color: 'var(--subtext)' }}>
+                Already have an account?{' '}
+                <span
+                  style={{ color: 'var(--primary)', fontWeight: 700, cursor: 'pointer', textDecoration: 'underline' }}
+                  onClick={() => setCurrentPage("login")}
+                >
+                  Sign In
+                </span>
+              </p>
+            </div>
+          </div>
+        </div>
       )}
 
       {currentPage === "dashboard" && (
@@ -1330,84 +1507,111 @@ function App() {
               {activeTab === "overview" && (
                 <>
 
-                  {/* PREMIUM FINANCIAL OVERVIEW */}
-                  <div className="fintech-overview-panel">
+                  {/* HIGH-DENSITY COCKPIT DASHBOARD HERO */}
+                  <div className="fintech-dashboard-hero">
 
-                    <div className="overview-header-row">
-                      <div className="overview-balance-block">
-                        <span className="overview-label">{budgetType} Net Balance</span>
-                        <h2 className={`overview-value ${budgetLeft >= 0 ? "positive" : "negative"}`}>
+                    {/* Metric 1: Available Budget */}
+                    <div className="hero-metric-card">
+                      <div className="metric-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span className="metric-label">Available Budget</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5" style={{ width: 16, height: 16 }}>
+                          <rect x="2" y="4" width="20" height="16" rx="2" />
+                          <line x1="12" y1="4" x2="12" y2="20" />
+                        </svg>
+                      </div>
+                      <div className="metric-body">
+                        <div className={`metric-value ${budgetLeft >= 0 ? "" : "danger"}`}>
                           Rs{budgetLeft}
-                        </h2>
+                        </div>
+                        <div className="metric-subtext" style={{ marginTop: 4 }}>
+                          Limit: Rs{budget || 0}
+                        </div>
                       </div>
-                      <div className="overview-meta-block">
-                        <span className="cycle-status-badge">
-                          <span className="pulse-dot"></span>
-                          {budgetType} Cycle Active
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="overview-progress-bar-wrapper">
-                      <div className="progress-info-row">
-                        <span>Spent: <strong>Rs{totalSpent}</strong></span>
-                        <span>Limit: <strong>Rs{budget || 0}</strong></span>
-                      </div>
-                      <div className="overview-progress-track">
+                      <div className="mini-progress-track">
                         <div
-                          className={`overview-progress-bar ${
-                            (budget > 0 ? (totalSpent / budget) * 100 : 0) > 100
-                              ? "danger"
-                              : (budget > 0 ? (totalSpent / budget) * 100 : 0) > 80
-                                ? "warning"
-                                : ""
-                          }`}
+                          className={`mini-progress-bar ${(budget > 0 ? (totalSpent / budget) * 100 : 0) > 100 ? "danger" : ""}`}
                           style={{ width: `${Math.min(budget > 0 ? (totalSpent / budget) * 100 : 0, 100)}%` }}
                         ></div>
                       </div>
                     </div>
 
-                  </div>
-
-                  {/* ELEVATED KPI CARDS */}
-                  <div className="stats-grid">
-
-                    <div className="stat-card">
-                      <div className="stat-card-header">
-                        <span className="stat-card-label">Total Expenses</span>
-                        <span className="status-dot debit"></span>
+                    {/* Metric 2: Monthly Spending */}
+                    <div className="hero-metric-card">
+                      <div className="metric-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span className="metric-label">Monthly Spending</span>
+                        {/* Micro sparkline */}
+                        <svg viewBox="0 0 50 20" style={{ width: 42, height: 18 }}>
+                          <path
+                            d="M0 15 Q 10 5, 20 12 T 40 4 L 50 8"
+                            fill="none"
+                            stroke="var(--primary)"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                          />
+                        </svg>
                       </div>
-                      <h2 className="stat-card-value">Rs{totalSpent}</h2>
-                      <p className="stat-card-subtext">Total cash outflow</p>
+                      <div className="metric-body">
+                        <div className="metric-value spent-color">
+                          Rs{monthlySpent}
+                        </div>
+                        <div className="metric-subtext" style={{ marginTop: 4 }}>
+                          Outflow this month
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="stat-card">
-                      <div className="stat-card-header">
-                        <span className="stat-card-label">Budget Left</span>
-                        <span className={`status-dot ${budgetLeft >= 0 ? "savings" : "debit"}`}></span>
+                    {/* Metric 3: Savings Rate */}
+                    <div className="hero-metric-card">
+                      <div className="metric-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span className="metric-label">Savings Rate</span>
+                        <span className="metric-trend-pill">
+                          {budget > 0 ? Math.max(0, Math.round(((budget - totalSpent) / budget) * 100)) : 0}%
+                        </span>
                       </div>
-                      <h2 className={`stat-card-value ${budgetLeft >= 0 ? "" : "danger"}`}>Rs{budgetLeft}</h2>
-                      <p className="stat-card-subtext">{budgetLeft >= 0 ? "Remaining balance" : "Over budget limit"}</p>
+                      <div className="metric-body">
+                        <div className="metric-value savings-color">
+                          {budget > 0 ? Math.max(0, Math.round(((budget - totalSpent) / budget) * 100)) : 0}%
+                        </div>
+                        <div className="metric-subtext" style={{ marginTop: 4 }}>
+                          Of total budget saved
+                        </div>
+                      </div>
                     </div>
 
-                    <div className="stat-card">
-                      <div className="stat-card-header">
-                        <span className="stat-card-label">This Month</span>
-                        <span className="status-dot cycle"></span>
-                      </div>
-                      <h2 className="stat-card-value">Rs{monthlySpent}</h2>
-                      <p className="stat-card-subtext">Current month spent</p>
-                    </div>
-
-                    <div className="stat-card">
-                      <div className="stat-card-header">
-                        <span className="stat-card-label">Latest Expense</span>
-                        <span className="status-dot activity"></span>
-                      </div>
-                      <h2 className="stat-card-value latest-title" title={latestExpense}>
-                        {latestExpense}
-                      </h2>
-                      <p className="stat-card-subtext">Most recent debit</p>
+                    {/* Metric 4: Budget Health Score */}
+                    <div className="hero-metric-card">
+                      {(() => {
+                        const ratio = budget > 0 ? (totalSpent / budget) : 0;
+                        const score = budget > 0 ? Math.max(0, Math.round((1 - ratio) * 100)) : 100;
+                        let statusText = "Excellent";
+                        let statusClass = "health-excellent";
+                        if (ratio > 1.0) {
+                          statusText = "Over Limit";
+                          statusClass = "health-critical";
+                        } else if (ratio > 0.8) {
+                          statusText = "Warning";
+                          statusClass = "health-warning";
+                        } else if (ratio > 0.5) {
+                          statusText = "Good";
+                          statusClass = "health-excellent";
+                        }
+                        return (
+                          <>
+                            <div className="metric-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span className="metric-label">Health Score</span>
+                              <span className={`status-dot ${statusClass}`} style={{ width: 8, height: 8, borderRadius: '50%', display: 'inline-block' }}></span>
+                            </div>
+                            <div className="metric-body">
+                              <div className={`metric-value ${statusClass}`}>
+                                {score}/100
+                              </div>
+                              <div className="metric-subtext" style={{ marginTop: 4 }}>
+                                Status: <strong>{statusText}</strong>
+                              </div>
+                            </div>
+                          </>
+                        );
+                      })()}
                     </div>
 
                   </div>
@@ -1443,9 +1647,7 @@ function App() {
                             return (
                               <div className="expense-card" key={expense.id}>
                                 <div className="expense-left">
-                                  <div className="category-icon-bg">
-                                    {cat.icon}
-                                  </div>
+                                  {getMerchantAvatar(expense.title, expense.category)}
                                   <div className="expense-meta-info">
                                     <h3>{expense.title}</h3>
                                     <div className="expense-meta-tags">
@@ -1849,9 +2051,7 @@ function App() {
 
                               <div className="expense-left">
 
-                                <div className="category-icon-bg">
-                                  {cat.icon}
-                                </div>
+                                {getMerchantAvatar(expense.title, expense.category)}
 
                                 <div className="expense-meta-info">
 
@@ -2119,6 +2319,116 @@ function App() {
             </div>
 
           </main>
+
+          {/* FLOATING ACTION BUTTON (FAB) */}
+          <button
+            className="fab-btn"
+            onClick={() => {
+              setExpenseDate(new Date().toISOString().slice(0, 10));
+              setExpenseCategory(getMostFrequentCategory());
+              setExpenseTitle("");
+              setExpenseAmount("");
+              setShowQuickAdd(true);
+            }}
+            title="Quick Add Expense"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" style={{ width: 16, height: 16 }}>
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            <span>Quick Add</span>
+          </button>
+
+          {/* QUICK ADD OVERLAY MODAL */}
+          {showQuickAdd && (
+            <div className="quick-add-modal-overlay" onClick={() => setShowQuickAdd(false)}>
+              <div className="quick-add-modal-card" onClick={(e) => e.stopPropagation()}>
+                
+                <div className="modal-header">
+                  <h3>Quick Add Expense</h3>
+                  <button className="modal-close-btn" onClick={() => setShowQuickAdd(false)}>&times;</button>
+                </div>
+
+                <div className="quick-add-form">
+                  <div className="input-group">
+                    <label className="input-label" style={{ textAlign: 'center' }}>Amount (Rs)</label>
+                    <input
+                      type="number"
+                      className="amount-input-large"
+                      placeholder="0.00"
+                      value={expenseAmount}
+                      onChange={(e) => setExpenseAmount(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
+
+                  <div className="input-group">
+                    <label className="input-label">Select Category</label>
+                    <div className="category-pills-grid">
+                      {["Food", "Travel", "Shopping", "Bills", "Entertainment"].map(catName => {
+                        const details = getCategoryDetails(catName);
+                        const isActive = expenseCategory === catName;
+                        return (
+                          <button
+                            key={catName}
+                            type="button"
+                            className={`category-pill-btn ${isActive ? 'active' : ''}`}
+                            style={isActive ? { '--cat-bg': details.bg, '--cat-color': details.color } : {}}
+                            onClick={() => setExpenseCategory(catName)}
+                          >
+                            <span className="pill-dot" style={{ backgroundColor: details.color }}></span>
+                            {catName}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Collapsible toggle for advanced inputs */}
+                  <div className="advanced-options-toggle">
+                    <button
+                      type="button"
+                      className="toggle-collapse-btn"
+                      onClick={() => setAdvancedQuickAdd(!advancedQuickAdd)}
+                    >
+                      {advancedQuickAdd ? "Hide Details" : "Show Advanced Options"}
+                    </button>
+                  </div>
+
+                  {advancedQuickAdd && (
+                    <div className="advanced-fields-box">
+                      <div className="input-group">
+                        <label className="input-label">Description / Title</label>
+                        <input
+                          type="text"
+                          placeholder={`Defaults to "${expenseCategory || 'Category'} Expense"`}
+                          value={expenseTitle}
+                          onChange={(e) => setExpenseTitle(e.target.value)}
+                        />
+                      </div>
+                      <div className="input-group">
+                        <label className="input-label">Date</label>
+                        <input
+                          type="date"
+                          value={expenseDate}
+                          onChange={(e) => setExpenseDate(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={handleQuickAddSave}
+                    style={{ marginTop: 8 }}
+                  >
+                    Save Transaction
+                  </button>
+
+                </div>
+
+              </div>
+            </div>
+          )}
 
         </div>
 
