@@ -17,7 +17,8 @@ import {
   query,
   where,
   setDoc,
-  getDoc
+  getDoc,
+  serverTimestamp
 } from "firebase/firestore"
 
 import { auth, db } from './firebase'
@@ -152,11 +153,14 @@ function App() {
 
   const [budget, setBudget] = useState("")
   const [budgetType, setBudgetType] = useState("Monthly")
+  const [isBudgetTypeDropdownOpen, setIsBudgetTypeDropdownOpen] = useState(false)
+  const [isBudgetTypeDropdownOpenTab, setIsBudgetTypeDropdownOpenTab] = useState(false)
 
   const [expenseTitle, setExpenseTitle] = useState("")
   const [expenseAmount, setExpenseAmount] = useState("")
   const [expenseCategory, setExpenseCategory] = useState("")
-  const [expenseDate, setExpenseDate] = useState("")
+  const [expenseDate, setExpenseDate] = useState(new Date().toISOString().slice(0, 10))
+  const [dateMode, setDateMode] = useState("today")
 
   const [expenses, setExpenses] = useState([])
 
@@ -299,6 +303,23 @@ function App() {
 
     })
 
+    // Sort latest date first (descending), then by creation timestamp (descending)
+    expenseList.sort((a, b) => {
+      const dateA = a.date || "";
+      const dateB = b.date || "";
+      if (dateB !== dateA) {
+        return dateB.localeCompare(dateA);
+      }
+      
+      const timeA = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : (a.createdAt.seconds ? a.createdAt.seconds * 1000 : Number(a.createdAt))) : 0;
+      const timeB = b.createdAt ? (b.createdAt.toMillis ? b.createdAt.toMillis() : (b.createdAt.seconds ? b.createdAt.seconds * 1000 : Number(b.createdAt))) : 0;
+      if (timeB !== timeA) {
+        return timeB - timeA;
+      }
+
+      return (b.id || "").localeCompare(a.id || "");
+    });
+
     setExpenses(expenseList)
 
   }
@@ -378,6 +399,17 @@ function App() {
 
     }
 
+    if (Number(expenseAmount) <= 0 || isNaN(Number(expenseAmount))) {
+      alert("Please enter a valid expense amount.")
+      return
+    }
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (expenseDate > todayStr) {
+      alert("Future transactions are not allowed.")
+      return
+    }
+
     const activeUid = currentUser?.uid || auth.currentUser?.uid;
     if (!activeUid) {
       alert("User session not found")
@@ -424,7 +456,9 @@ function App() {
 
           date: expenseDate,
 
-          uid: activeUid
+          uid: activeUid,
+
+          createdAt: serverTimestamp()
 
         }
 
@@ -435,7 +469,8 @@ function App() {
     setExpenseTitle("")
     setExpenseAmount("")
     setExpenseCategory("")
-    setExpenseDate("")
+    setExpenseDate(new Date().toISOString().slice(0, 10))
+    setDateMode("today")
 
     fetchExpenses(activeUid)
 
@@ -443,14 +478,20 @@ function App() {
 
   async function handleQuickAddSave() {
     const amt = expenseAmount;
-    if (!amt || Number(amt) <= 0) {
-      alert("Please enter a valid amount.");
+    if (!amt || Number(amt) <= 0 || isNaN(Number(amt))) {
+      alert("Please enter a valid expense amount.");
       return;
     }
 
     const cat = expenseCategory || getMostFrequentCategory();
     const title = expenseTitle.trim() || `${cat} Expense`;
     const date = expenseDate || new Date().toISOString().slice(0, 10);
+
+    const todayStr = new Date().toISOString().slice(0, 10);
+    if (date > todayStr) {
+      alert("Future transactions are not allowed.");
+      return;
+    }
 
     const activeUid = currentUser?.uid || auth.currentUser?.uid;
     if (!activeUid) {
@@ -466,14 +507,16 @@ function App() {
           amount: amt,
           category: cat,
           date: date,
-          uid: activeUid
+          uid: activeUid,
+          createdAt: serverTimestamp()
         }
       );
 
       setExpenseTitle("");
       setExpenseAmount("");
       setExpenseCategory("");
-      setExpenseDate("");
+      setExpenseDate(new Date().toISOString().slice(0, 10));
+      setDateMode("today");
       setAdvancedQuickAdd(false);
       setShowQuickAdd(false);
 
@@ -504,6 +547,18 @@ function App() {
 
     setExpenseDate(expense.date)
 
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = yesterday.toISOString().slice(0, 10);
+    if (expense.date === todayStr) {
+      setDateMode("today");
+    } else if (expense.date === yesterdayStr) {
+      setDateMode("yesterday");
+    } else {
+      setDateMode("custom");
+    }
+
     setEditingId(expense.id)
 
     // Automatically transition to Transactions Tab for editing
@@ -516,150 +571,150 @@ function App() {
     const pdf = new jsPDF()
 
     // --------------------------------------------------
-    // PAGE 1: COVER PAGE
+    // PAGE 1: BRANDING & EXECUTIVE SUMMARY
     // --------------------------------------------------
     
     // Left decorative brand bar
-    pdf.setFillColor(8, 11, 22); // Deep Navy
-    pdf.rect(0, 0, 15, 297, "F");
+    pdf.setFillColor(15, 23, 42); // Deep Slate Navy
+    pdf.rect(0, 0, 8, 297, "F");
 
-    // Geometric branding vectors (Logo mark - Growth Compass ascending bars)
+    // Growth Compass Logo Mark
     pdf.setFillColor(16, 185, 129); // Emerald
-    pdf.rect(40, 78, 6, 12, "F");
-    pdf.setFillColor(226, 184, 66); // Gold
-    pdf.rect(49, 72, 6, 18, "F");
+    pdf.rect(20, 15, 3, 7, "F");
+    pdf.setFillColor(59, 130, 246); // Blue
+    pdf.rect(25, 11, 3, 11, "F");
+    pdf.setFillColor(245, 158, 11); // Gold
+    pdf.rect(30, 17, 3, 5, "F");
 
-    // Title & Typography block
+    // Brand Name and Tagline
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(28);
-    pdf.setTextColor(15, 23, 42); // Slate 900
-    pdf.text("PERSONAL FINANCIAL REPORT", 40, 110);
+    pdf.setFontSize(16);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text("TrackWise", 38, 20);
 
     pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text("Track smarter. Spend wiser.", 38, 25);
+
+    // Thin divider line
+    pdf.setDrawColor(226, 232, 240);
+    pdf.setLineWidth(0.5);
+    pdf.line(20, 31, 190, 31);
+
+    // User metadata row
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text("PREPARED FOR", 20, 40);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(currentUser?.email || "User Account", 20, 46);
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text("REPORT PERIOD", 85, 40);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(`${budgetType || "Monthly"} Budget Cycle`, 85, 46);
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(7.5);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text("AUTHORSHIP", 145, 40);
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(8.5);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text("Built by A.", 145, 46);
+
+    pdf.line(20, 52, 190, 52);
+
+    // Section Title
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(12);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text("EXECUTIVE SUMMARY", 20, 62);
+
+    // 2x2 grid of Cards
+    // Row 1
+    pdf.setDrawColor(226, 232, 240);
+    pdf.rect(20, 68, 80, 24, "S");
+    pdf.setFillColor(248, 250, 252);
+    pdf.rect(20.5, 68.5, 79, 23, "F");
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(7);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text("TOTAL BUDGET LIMIT", 25, 75);
+    pdf.setFont("helvetica", "bold");
     pdf.setFontSize(13);
-    pdf.setTextColor(100, 116, 139); // Slate 500
-    pdf.text("TrackWise Statement and Insights Summary", 40, 120);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(`Rs ${budget || 0}`, 25, 84);
 
-    // Elegant divider line
     pdf.setDrawColor(226, 232, 240);
-    pdf.setLineWidth(1);
-    pdf.line(40, 132, 140, 132);
-
-    // Meta Context Labels
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(9);
-    pdf.setTextColor(100, 116, 139);
-    pdf.text("PREPARED FOR:", 40, 175);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(11);
-    pdf.setTextColor(15, 23, 42);
-    pdf.text(currentUser?.email || "User Account", 40, 182);
-
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(9);
-    pdf.setTextColor(100, 116, 139);
-    pdf.text("REPORT PERIOD:", 40, 202);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(11);
-    pdf.setTextColor(15, 23, 42);
-    pdf.text(`${budgetType || "Monthly"} Budget Cycle`, 40, 209);
-
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(9);
-    pdf.setTextColor(100, 116, 139);
-    pdf.text("GENERATION DATE:", 40, 229);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(11);
-    pdf.setTextColor(15, 23, 42);
-    const dateFormatted = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-    pdf.text(dateFormatted, 40, 236);
-
-    // --------------------------------------------------
-    // PAGE 2: EXECUTIVE SUMMARY & INSIGHTS
-    // --------------------------------------------------
-    pdf.addPage();
-
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(18);
-    pdf.setTextColor(15, 23, 42);
-    pdf.text("EXECUTIVE SUMMARY", 20, 30);
-
-    // Card 1: Total Budget
-    pdf.setDrawColor(226, 232, 240);
-    pdf.rect(20, 42, 80, 32, "S");
+    pdf.rect(110, 68, 80, 24, "S");
     pdf.setFillColor(248, 250, 252);
-    pdf.rect(21, 43, 78, 30, "F");
+    pdf.rect(110.5, 68.5, 79, 23, "F");
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(8);
+    pdf.setFontSize(7);
     pdf.setTextColor(100, 116, 139);
-    pdf.text("TOTAL BUDGET LIMIT", 26, 52);
+    pdf.text("TOTAL EXPENSES DEBITED", 115, 75);
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(16);
-    pdf.setTextColor(15, 23, 42);
-    pdf.text(`Rs ${budget || 0}`, 26, 66);
-
-    // Card 2: Total Expenses
-    pdf.rect(110, 42, 80, 32, "S");
-    pdf.setFillColor(248, 250, 252);
-    pdf.rect(111, 43, 78, 30, "F");
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(8);
-    pdf.setTextColor(100, 116, 139);
-    pdf.text("TOTAL EXPENSES DEBITED", 116, 52);
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(16);
+    pdf.setFontSize(13);
     pdf.setTextColor(239, 68, 68); // Red
-    pdf.text(`Rs ${totalSpent}`, 116, 66);
+    pdf.text(`Rs ${totalSpent}`, 115, 84);
 
-    // Card 3: Remaining Balance
-    pdf.rect(20, 84, 80, 32, "S");
+    // Row 2
+    pdf.setDrawColor(226, 232, 240);
+    pdf.rect(20, 98, 80, 24, "S");
     pdf.setFillColor(248, 250, 252);
-    pdf.rect(21, 85, 78, 30, "F");
+    pdf.rect(20.5, 98.5, 79, 23, "F");
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(8);
+    pdf.setFontSize(7);
     pdf.setTextColor(100, 116, 139);
-    pdf.text("REMAINING BALANCES", 26, 94);
+    pdf.text("REMAINING BALANCES", 25, 105);
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(16);
+    pdf.setFontSize(13);
     if (budgetLeft >= 0) {
       pdf.setTextColor(16, 185, 129); // Green
     } else {
       pdf.setTextColor(239, 68, 68); // Red
     }
-    pdf.text(`Rs ${budgetLeft}`, 26, 108);
-
-    // Card 4: Budget Utilization Rate
-    pdf.rect(110, 84, 80, 32, "S");
-    pdf.setFillColor(248, 250, 252);
-    pdf.rect(111, 85, 78, 30, "F");
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(8);
-    pdf.setTextColor(100, 116, 139);
-    pdf.text("BUDGET UTILIZATION RATE", 116, 94);
-    const utilizationRate = budget > 0 ? Math.round((totalSpent / budget) * 100) : 0;
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(16);
-    if (utilizationRate > 100) {
-      pdf.setTextColor(239, 68, 68); // Red warning
-    } else if (utilizationRate > 80) {
-      pdf.setTextColor(245, 158, 11); // Amber caution
-    } else {
-      pdf.setTextColor(79, 70, 229); // Indigo
-    }
-    pdf.text(`${utilizationRate}%`, 116, 108);
-
-    // Insights Box
-    pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(14);
-    pdf.setTextColor(15, 23, 42);
-    pdf.text("REAL-TIME SPENDING INSIGHTS", 20, 136);
+    pdf.text(`Rs ${budgetLeft}`, 25, 114);
 
     pdf.setDrawColor(226, 232, 240);
-    pdf.rect(20, 143, 170, 120, "S");
+    pdf.rect(110, 98, 80, 24, "S");
     pdf.setFillColor(248, 250, 252);
-    pdf.rect(21, 144, 168, 118, "F");
+    pdf.rect(110.5, 98.5, 79, 23, "F");
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(7);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text("BUDGET UTILIZATION RATE", 115, 105);
+    const utilizationRate = budget > 0 ? Math.round((totalSpent / budget) * 100) : 0;
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(13);
+    if (utilizationRate > 100) {
+      pdf.setTextColor(239, 68, 68);
+    } else if (utilizationRate > 80) {
+      pdf.setTextColor(245, 158, 11);
+    } else {
+      pdf.setTextColor(37, 99, 235);
+    }
+    pdf.text(`${utilizationRate}%`, 115, 114);
 
-    // Insight computations
+    // Spending Insights Section
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(11);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text("REAL-TIME SPENDING INSIGHTS", 20, 134);
+
+    pdf.setDrawColor(226, 232, 240);
+    pdf.rect(20, 140, 170, 80, "S");
+    pdf.setFillColor(248, 250, 252);
+    pdf.rect(20.5, 140.5, 169, 79, "F");
+
     let peakCategory = "None";
     let peakAmount = 0;
     let minCategory = "None";
@@ -682,99 +737,84 @@ function App() {
     }
 
     const concentrationRatio = totalSpent > 0 ? Math.round((peakAmount / totalSpent) * 100) : 0;
-    const savingsRatio = budget > 0 ? Math.round(((budget - totalSpent) / budget) * 100) : 0;
+    const savingsRatio = budget > 0 ? Math.max(0, Math.round(((budget - totalSpent) / budget) * 100)) : 0;
 
-    // Insight Text
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(9.5);
+    pdf.setFontSize(8.5);
     pdf.setTextColor(15, 23, 42);
     
-    // Concentration
-    pdf.text("Spending Concentration:", 26, 160);
+    pdf.text("Spending Concentration:", 26, 154);
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(70, 80, 95);
-    pdf.text(`Your top category (${peakCategory}) represents ${concentrationRatio}% of total spending.`, 72, 160);
+    pdf.text(`Your top category (${peakCategory}) represents ${concentrationRatio}% of total spending.`, 65, 154);
 
-    // Highest
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(15, 23, 42);
-    pdf.text("Peak Expense Category:", 26, 180);
+    pdf.text("Peak Expense Category:", 26, 168);
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(70, 80, 95);
-    pdf.text(`Highest allocation is ${peakCategory} with a total debit of Rs ${peakAmount}.`, 72, 180);
+    pdf.text(`Highest allocation is ${peakCategory} with a total debit of Rs ${peakAmount}.`, 65, 168);
 
-    // Lowest
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(15, 23, 42);
-    pdf.text("Min Expense Category:", 26, 200);
+    pdf.text("Min Expense Category:", 26, 182);
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(70, 80, 95);
-    pdf.text(`Lowest allocation is ${minCategory} with a total debit of Rs ${minAmount}.`, 72, 200);
+    pdf.text(`Lowest allocation is ${minCategory} with a total debit of Rs ${minAmount}.`, 65, 182);
 
-    // Counts
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(15, 23, 42);
-    pdf.text("Transaction Count:", 26, 220);
+    pdf.text("Transaction Count:", 26, 196);
     pdf.setFont("helvetica", "normal");
     pdf.setTextColor(70, 80, 95);
-    pdf.text(`A total of ${expenses.length} transaction entries have been processed in this cycle.`, 72, 220);
+    pdf.text(`A total of ${expenses.length} transaction entries have been processed in this cycle.`, 65, 196);
 
-    // Overall Rating
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(15, 23, 42);
-    pdf.text("Cycle Balance Rating:", 26, 240);
+    pdf.text("Cycle Balance Rating:", 26, 210);
     let statusRating = "Optimized Balance Flow";
-    let statusColor = [16, 185, 129]; // Green
+    let statusColor = [16, 185, 129];
     if (utilizationRate > 100) {
       statusRating = "Budget Overrun Warning";
-      statusColor = [239, 68, 68]; // Red
+      statusColor = [239, 68, 68];
     } else if (utilizationRate > 80) {
       statusRating = "Caution Threshold Reached";
-      statusColor = [245, 158, 11]; // Amber
+      statusColor = [245, 158, 11];
     }
     pdf.setFont("helvetica", "bold");
     pdf.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
-    pdf.text(`${statusRating} (Savings Rate: ${savingsRatio}%)`, 72, 240);
+    pdf.text(`${statusRating} (Savings Rate: ${savingsRatio}%)`, 65, 210);
 
     // --------------------------------------------------
-    // PAGE 3: CATEGORY VISUAL ALLOCATIONS
+    // PAGE 2: CATEGORY BREAKDOWN & LEDGER APPENDIX
     // --------------------------------------------------
     pdf.addPage();
 
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(18);
+    pdf.setFontSize(12);
     pdf.setTextColor(15, 23, 42);
-    pdf.text("FINANCIAL ANALYTICS", 20, 30);
-
-    pdf.setFont("helvetica", "normal");
-    pdf.setFontSize(9.5);
-    pdf.setTextColor(100, 116, 139);
-    pdf.text("Allocated spending distributions represented as progress margins.", 20, 37);
+    pdf.text("FINANCIAL ANALYTICS & CATEGORY BREAKDOWN", 20, 24);
 
     const categoriesAvailable = ["Food", "Travel", "Shopping", "Bills", "Entertainment"];
-    let barY = 54;
+    let barY = 32;
 
     categoriesAvailable.forEach((category) => {
       const amt = categoryTotals[category] || 0;
       const pct = totalSpent > 0 ? (amt / totalSpent) * 100 : 0;
 
-      // Label
       pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(10);
+      pdf.setFontSize(8.5);
       pdf.setTextColor(15, 23, 42);
       pdf.text(category, 20, barY);
 
-      // Value & %
       pdf.setFont("helvetica", "bold");
-      pdf.setFontSize(10);
-      pdf.setTextColor(79, 70, 229);
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(37, 99, 235);
       pdf.text(`Rs ${amt} (${Math.round(pct)}%)`, 190, barY, { align: "right" });
 
-      // Bar Background Track
       pdf.setFillColor(241, 245, 249);
-      pdf.rect(20, barY + 3, 170, 5, "F");
+      pdf.rect(20, barY + 2, 170, 3, "F");
 
-      // Bar Fill
       const styleCat = getCategoryDetails(category);
       let cleanHex = styleCat.color.replace('#', '');
       let rFill = parseInt(cleanHex.substring(0, 2), 16);
@@ -782,102 +822,195 @@ function App() {
       let bFill = parseInt(cleanHex.substring(4, 6), 16);
 
       pdf.setFillColor(rFill, gFill, bFill);
-      pdf.rect(20, barY + 3, Math.min((pct / 100) * 170, 170), 5, "F");
+      pdf.rect(20, barY + 2, Math.min((pct / 100) * 170, 170), 3, "F");
 
-      barY += 25;
+      barY += 10;
     });
 
-    // --------------------------------------------------
-    // PAGE 4+: TRANSACTION APPENDIX
-    // --------------------------------------------------
-    pdf.addPage();
+    pdf.line(20, 86, 190, 86);
 
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(18);
+    pdf.setFontSize(12);
     pdf.setTextColor(15, 23, 42);
-    pdf.text("TRANSACTION LEDGER APPENDIX", 20, 30);
+    pdf.text("TRANSACTION LEDGER APPENDIX", 20, 96);
 
-    // Draw Table Header
-    pdf.setFillColor(30, 27, 75); // Deep Navy Header
-    pdf.rect(20, 40, 170, 10, "F");
+    pdf.setFillColor(15, 23, 42);
+    pdf.rect(20, 102, 170, 8, "F");
 
     pdf.setFont("helvetica", "bold");
-    pdf.setFontSize(9);
+    pdf.setFontSize(8);
     pdf.setTextColor(255, 255, 255);
-    pdf.text("No.", 23, 46);
-    pdf.text("Title", 34, 46);
-    pdf.text("Category", 96, 46);
-    pdf.text("Date", 132, 46);
-    pdf.text("Amount", 188, 46, { align: "right" });
+    pdf.text("Title", 22, 107.5);
+    pdf.text("Category", 96, 107.5);
+    pdf.text("Amount", 188, 107.5, { align: "right" });
 
-    let tableY = 50;
+    // Format helper for dates in PDF
+    const formatPDFDate = (dateStr) => {
+      if (!dateStr || dateStr === "No Date") return "No Date";
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return dateStr;
+      const year = parts[0];
+      const monthIdx = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const months = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+      ];
+      const monthName = months[monthIdx] || parts[1];
+      const dayStr = String(day).padStart(2, '0');
+      return `${monthName} ${dayStr}, ${year}`;
+    };
 
-    filteredExpenses.forEach((expense, index) => {
-      // Check page break height threshold
-      if (tableY > 265) {
+    // Sort transactions latest first
+    const sortedExpenses = [...filteredExpenses].sort((a, b) => {
+      const dateA = a.date || "";
+      const dateB = b.date || "";
+      if (dateB !== dateA) {
+        return dateB.localeCompare(dateA);
+      }
+      
+      const timeA = a.createdAt ? (a.createdAt.toMillis ? a.createdAt.toMillis() : (a.createdAt.seconds ? a.createdAt.seconds * 1000 : Number(a.createdAt))) : 0;
+      const timeB = b.createdAt ? (b.createdAt.toMillis ? b.createdAt.toMillis() : (b.createdAt.seconds ? b.createdAt.seconds * 1000 : Number(b.createdAt))) : 0;
+      if (timeB !== timeA) {
+        return timeB - timeA;
+      }
+
+      return (b.id || "").localeCompare(a.id || "");
+    });
+
+    // Group transactions by date
+    const dateGroups = {};
+    sortedExpenses.forEach((expense) => {
+      const dStr = expense.date || "No Date";
+      if (!dateGroups[dStr]) {
+        dateGroups[dStr] = [];
+      }
+      dateGroups[dStr].push(expense);
+    });
+
+    const sortedDates = Object.keys(dateGroups).sort((a, b) => {
+      if (a === "No Date") return 1;
+      if (b === "No Date") return -1;
+      return new Date(b) - new Date(a);
+    });
+
+    let tableY = 114;
+    let rowCount = 0;
+
+    sortedDates.forEach((dateStr) => {
+      const groupExpenses = dateGroups[dateStr];
+      if (!groupExpenses || groupExpenses.length === 0) return;
+
+      // Check if we need a page break for the Date Header + 1 transaction row
+      if (tableY + 18 > 265) {
         pdf.addPage();
         
-        // Re-draw header on new page
-        pdf.setFillColor(30, 27, 75);
-        pdf.rect(20, 25, 170, 10, "F");
+        pdf.setFillColor(15, 23, 42);
+        pdf.rect(20, 25, 170, 8, "F");
 
         pdf.setFont("helvetica", "bold");
-        pdf.setFontSize(9);
+        pdf.setFontSize(8);
         pdf.setTextColor(255, 255, 255);
-        pdf.text("No.", 23, 31);
-        pdf.text("Title", 34, 31);
-        pdf.text("Category", 96, 31);
-        pdf.text("Date", 132, 31);
-        pdf.text("Amount", 188, 31, { align: "right" });
+        pdf.text("Title", 22, 30.5);
+        pdf.text("Category", 96, 30.5);
+        pdf.text("Amount", 188, 30.5, { align: "right" });
 
-        tableY = 35;
+        tableY = 37;
       }
 
-      // Alternating row styling
-      if (index % 2 === 0) {
-        pdf.setFillColor(248, 250, 252);
-        pdf.rect(20, tableY, 170, 10, "F");
+      // Draw Group Date Header
+      if (tableY !== 114 && tableY !== 37) {
+        pdf.setDrawColor(226, 232, 240);
+        pdf.setLineWidth(0.3);
+        pdf.line(20, tableY - 1, 190, tableY - 1);
       }
-
-      // Data printing
-      pdf.setFont("helvetica", "normal");
-      pdf.setFontSize(9);
-      pdf.setTextColor(15, 23, 42);
-      pdf.text(String(index + 1), 23, tableY + 6.5);
-
-      let titleStr = expense.title || "";
-      if (titleStr.length > 25) titleStr = titleStr.substring(0, 22) + "...";
-      pdf.text(titleStr, 34, tableY + 6.5);
-
-      pdf.text(expense.category || "Other", 96, tableY + 6.5);
-      pdf.text(expense.date || "", 132, tableY + 6.5);
 
       pdf.setFont("helvetica", "bold");
-      pdf.text(`Rs ${expense.amount}`, 188, tableY + 6.5, { align: "right" });
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(formatPDFDate(dateStr), 22, tableY + 4);
+
+      // Draw underline beneath the date header
+      pdf.setDrawColor(226, 232, 240);
+      pdf.setLineWidth(0.3);
+      pdf.line(20, tableY + 6, 190, tableY + 6);
 
       tableY += 10;
+
+      // Draw group transactions
+      groupExpenses.forEach((expense) => {
+        if (tableY > 265) {
+          pdf.addPage();
+
+          pdf.setFillColor(15, 23, 42);
+          pdf.rect(20, 25, 170, 8, "F");
+
+          pdf.setFont("helvetica", "bold");
+          pdf.setFontSize(8);
+          pdf.setTextColor(255, 255, 255);
+          pdf.text("Title", 22, 30.5);
+          pdf.text("Category", 96, 30.5);
+          pdf.text("Amount", 188, 30.5, { align: "right" });
+
+          tableY = 37;
+        }
+
+        if (rowCount % 2 === 0) {
+          pdf.setFillColor(248, 250, 252);
+          pdf.rect(20, tableY, 170, 8, "F");
+        }
+
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(8);
+        pdf.setTextColor(71, 85, 105);
+
+        let titleStr = expense.title || "";
+        if (titleStr.length > 35) titleStr = titleStr.substring(0, 32) + "...";
+        pdf.text(titleStr, 22, tableY + 5.5);
+
+        pdf.text(expense.category || "Other", 96, tableY + 5.5);
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(`Rs ${expense.amount}`, 188, tableY + 5.5, { align: "right" });
+
+        tableY += 8;
+        rowCount++;
+      });
+
+      // Add a small spacer after the group
+      tableY += 4;
     });
 
     // --------------------------------------------------
     // GLOBAL PASS: HEADER & FOOTER CONFIGURATION
     // --------------------------------------------------
     const totalCount = pdf.internal.getNumberOfPages();
-    for (let i = 2; i <= totalCount; i++) {
+    const dateFormatted = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    
+    for (let i = 1; i <= totalCount; i++) {
       pdf.setPage(i);
 
-      // Header Rule
+      // Header Rule (skip first page since it already has visual brand header)
+      if (i > 1) {
+        pdf.setFont("helvetica", "normal");
+        pdf.setFontSize(8);
+        pdf.setTextColor(100, 116, 139);
+        pdf.text("TrackWise Financial Statement — Confidential", 20, 13);
+        pdf.setDrawColor(226, 232, 240);
+        pdf.setLineWidth(0.2);
+        pdf.line(20, 15, 190, 15);
+      }
+
+      // Footer Rule (on all pages)
+      pdf.setDrawColor(226, 232, 240);
+      pdf.setLineWidth(0.2);
+      pdf.line(20, 280, 190, 280);
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(8);
       pdf.setTextColor(100, 116, 139);
-      pdf.text("TrackWise Financial Statement — Confidential", 20, 13);
-      pdf.setDrawColor(226, 232, 240);
-      pdf.setLineWidth(0.2);
-      pdf.line(20, 15, 190, 15);
-
-      // Footer Rule
-      pdf.line(20, 280, 190, 280);
       pdf.text(`Page ${i} of ${totalCount}`, 190, 285, { align: "right" });
-      pdf.text("TrackWise — Statement Summary", 20, 285);
+      pdf.text(`TrackWise — Statement Summary  •  Generated on ${dateFormatted}`, 20, 285);
     }
 
     pdf.save("TrackWise_Financial_Statement.pdf");
@@ -1089,16 +1222,12 @@ function App() {
         <div className="auth-split-container">
           {/* Left panel: Brand and Marketing info */}
           <div className="auth-marketing-side">
-            <div className="auth-marketing-header">
-              <svg viewBox="0 0 24 24" fill="none" stroke="url(#marketingLogoGrad)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 28, height: 28 }}>
-                <defs>
-                  <linearGradient id="marketingLogoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#10b981" />
-                    <stop offset="100%" stopColor="#3b82f6" />
-                  </linearGradient>
-                </defs>
-                <path d="M12 2L2 22l10-4 10 4L12 2z" strokeWidth="1.5" strokeDasharray="2 2"/>
-                <path d="M12 18V9M8 18v-4M16 18v-7" strokeWidth="2"/>
+            <div className="auth-marketing-header" onClick={() => setCurrentPage("landing")} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+                <path d="M12 2L2 22l10-4 10 4L12 2z" stroke="var(--primary)" strokeWidth="1.5" strokeDasharray="2 2"/>
+                <path d="M12 18V9" stroke="var(--primary)" strokeWidth="2"/>
+                <path d="M8 18v-4" stroke="var(--accent-blue)" strokeWidth="2"/>
+                <path d="M16 18v-7" stroke="var(--accent-gold)" strokeWidth="2"/>
               </svg>
               <span className="auth-marketing-brand">TrackWise</span>
             </div>
@@ -1116,7 +1245,7 @@ function App() {
                     </svg>
                   </div>
                   <div className="auth-feature-text">
-                    <h4>Fast Expense Entry V2</h4>
+                    <h4>Add Expenses Quickly</h4>
                     <p>Record transactions in 5 seconds with category pills and smart pre-filled defaults.</p>
                   </div>
                 </div>
@@ -1128,8 +1257,8 @@ function App() {
                     </svg>
                   </div>
                   <div className="auth-feature-text">
-                    <h4>High-Density Cockpit</h4>
-                    <p>Track available budget, monthly spending, savings rate, and your live health score.</p>
+                    <h4>Your Financial Overview</h4>
+                    <p>Track available budget, monthly spending, and your overall transactions ledger.</p>
                   </div>
                 </div>
 
@@ -1160,7 +1289,7 @@ function App() {
           <div className="auth-form-side">
             <div className="auth-form-card">
               <h2>Welcome to TrackWise</h2>
-              <p className="subtitle">Sign in to your financial cockpit</p>
+              <p className="subtitle">Sign in to your financial overview</p>
 
               <div className="input-group">
                 <label className="input-label">Email Address</label>
@@ -1204,10 +1333,12 @@ function App() {
         <div className="auth-split-container">
           {/* Left panel: Brand and Marketing info */}
           <div className="auth-marketing-side">
-            <div className="auth-marketing-header">
-              <svg viewBox="0 0 24 24" fill="none" stroke="url(#marketingLogoGrad)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 28, height: 28 }}>
-                <path d="M12 2L2 22l10-4 10 4L12 2z" strokeWidth="1.5" strokeDasharray="2 2"/>
-                <path d="M12 18V9M8 18v-4M16 18v-7" strokeWidth="2"/>
+            <div className="auth-marketing-header" onClick={() => setCurrentPage("landing")} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 26, height: 26 }}>
+                <path d="M12 2L2 22l10-4 10 4L12 2z" stroke="var(--primary)" strokeWidth="1.5" strokeDasharray="2 2"/>
+                <path d="M12 18V9" stroke="var(--primary)" strokeWidth="2"/>
+                <path d="M8 18v-4" stroke="var(--accent-blue)" strokeWidth="2"/>
+                <path d="M16 18v-7" stroke="var(--accent-gold)" strokeWidth="2"/>
               </svg>
               <span className="auth-marketing-brand">TrackWise</span>
             </div>
@@ -1225,7 +1356,7 @@ function App() {
                     </svg>
                   </div>
                   <div className="auth-feature-text">
-                    <h4>Fast Expense Entry V2</h4>
+                    <h4>Add Expenses Quickly</h4>
                     <p>Record transactions in 5 seconds with category pills and smart pre-filled defaults.</p>
                   </div>
                 </div>
@@ -1237,8 +1368,8 @@ function App() {
                     </svg>
                   </div>
                   <div className="auth-feature-text">
-                    <h4>High-Density Cockpit</h4>
-                    <p>Track available budget, monthly spending, savings rate, and your live health score.</p>
+                    <h4>Your Financial Overview</h4>
+                    <p>Track available budget, monthly spending, and your overall transactions ledger.</p>
                   </div>
                 </div>
 
@@ -1331,15 +1462,11 @@ function App() {
               <div className="logo-wrapper">
 
                 <div className="logo-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="url(#logoGradTrackWise)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
-                    <defs>
-                      <linearGradient id="logoGradTrackWise" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#10b981" />
-                        <stop offset="100%" stopColor="#e2b842" />
-                      </linearGradient>
-                    </defs>
-                    <path d="M12 2L2 22l10-4 10 4L12 2z" strokeWidth="1.5" strokeDasharray="2 2"/>
-                    <path d="M12 18V9M8 18v-4M16 18v-7" strokeWidth="2"/>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+                    <path d="M12 2L2 22l10-4 10 4L12 2z" stroke="var(--primary)" strokeWidth="1.5" strokeDasharray="2 2"/>
+                    <path d="M12 18V9" stroke="var(--primary)" strokeWidth="2"/>
+                    <path d="M8 18v-4" stroke="var(--accent-blue)" strokeWidth="2"/>
+                    <path d="M16 18v-7" stroke="var(--accent-gold)" strokeWidth="2"/>
                   </svg>
                 </div>
 
@@ -1469,7 +1596,7 @@ function App() {
 
               <div className="header-title-section">
 
-                <h1>TrackWise 👋</h1>
+                <h1>TrackWise</h1>
 
                 <p>Track smarter. Spend wiser.</p>
 
@@ -1512,28 +1639,28 @@ function App() {
 
                     {/* Metric 1: Available Budget */}
                     <div className="hero-metric-card">
-                      <div className="metric-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span className="metric-label">Available Budget</span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" strokeWidth="2.5" style={{ width: 16, height: 16 }}>
-                          <rect x="2" y="4" width="20" height="16" rx="2" />
-                          <line x1="12" y1="4" x2="12" y2="20" />
-                        </svg>
-                      </div>
-                      <div className="metric-body">
-                        <div className={`metric-value ${budgetLeft >= 0 ? "" : "danger"}`}>
-                          Rs{budgetLeft}
-                        </div>
-                        <div className="metric-subtext" style={{ marginTop: 4 }}>
-                          Limit: Rs{budget || 0}
-                        </div>
-                      </div>
-                      <div className="mini-progress-track">
-                        <div
-                          className={`mini-progress-bar ${(budget > 0 ? (totalSpent / budget) * 100 : 0) > 100 ? "danger" : ""}`}
-                          style={{ width: `${Math.min(budget > 0 ? (totalSpent / budget) * 100 : 0, 100)}%` }}
-                        ></div>
-                      </div>
-                    </div>
+                       <div className="metric-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                         <span className="metric-label">{budgetLeft >= 0 ? "Available Budget" : "Budget Exceeded"}</span>
+                         <svg viewBox="0 0 24 24" fill="none" stroke={budgetLeft >= 0 ? "var(--primary)" : "var(--danger)"} strokeWidth="2.5" style={{ width: 16, height: 16 }}>
+                           <rect x="2" y="4" width="20" height="16" rx="2" />
+                           <line x1="12" y1="4" x2="12" y2="20" />
+                         </svg>
+                       </div>
+                       <div className="metric-body">
+                         <div className={`metric-value ${budgetLeft >= 0 ? "" : "danger"}`}>
+                           {budgetLeft >= 0 ? `Rs${budgetLeft}` : `Overspent by Rs${Math.abs(budgetLeft)}`}
+                         </div>
+                         <div className="metric-subtext" style={{ marginTop: 4 }}>
+                           Limit: Rs{budget || 0}
+                         </div>
+                       </div>
+                       <div className="mini-progress-track">
+                         <div
+                           className={`mini-progress-bar ${(budget > 0 ? (totalSpent / budget) * 100 : 0) > 100 ? "danger" : ""}`}
+                           style={{ width: `${Math.min(budget > 0 ? (totalSpent / budget) * 100 : 0, 100)}%` }}
+                         ></div>
+                       </div>
+                     </div>
 
                     {/* Metric 2: Monthly Spending */}
                     <div className="hero-metric-card">
@@ -1560,58 +1687,43 @@ function App() {
                       </div>
                     </div>
 
-                    {/* Metric 3: Savings Rate */}
+                    {/* Metric 3: Total Outflow */}
                     <div className="hero-metric-card">
                       <div className="metric-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span className="metric-label">Savings Rate</span>
-                        <span className="metric-trend-pill">
-                          {budget > 0 ? Math.max(0, Math.round(((budget - totalSpent) / budget) * 100)) : 0}%
-                        </span>
+                        <span className="metric-label">Total Outflow</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 16, height: 16, color: 'var(--subtext)' }}>
+                          <path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                        </svg>
                       </div>
                       <div className="metric-body">
-                        <div className="metric-value savings-color">
-                          {budget > 0 ? Math.max(0, Math.round(((budget - totalSpent) / budget) * 100)) : 0}%
+                        <div className="metric-value">
+                          Rs{totalSpent}
                         </div>
                         <div className="metric-subtext" style={{ marginTop: 4 }}>
-                          Of total budget saved
+                          All-time recorded expenses
                         </div>
                       </div>
                     </div>
 
-                    {/* Metric 4: Budget Health Score */}
+                    {/* Metric 4: Total Transactions */}
                     <div className="hero-metric-card">
-                      {(() => {
-                        const ratio = budget > 0 ? (totalSpent / budget) : 0;
-                        const score = budget > 0 ? Math.max(0, Math.round((1 - ratio) * 100)) : 100;
-                        let statusText = "Excellent";
-                        let statusClass = "health-excellent";
-                        if (ratio > 1.0) {
-                          statusText = "Over Limit";
-                          statusClass = "health-critical";
-                        } else if (ratio > 0.8) {
-                          statusText = "Warning";
-                          statusClass = "health-warning";
-                        } else if (ratio > 0.5) {
-                          statusText = "Good";
-                          statusClass = "health-excellent";
-                        }
-                        return (
-                          <>
-                            <div className="metric-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span className="metric-label">Health Score</span>
-                              <span className={`status-dot ${statusClass}`} style={{ width: 8, height: 8, borderRadius: '50%', display: 'inline-block' }}></span>
-                            </div>
-                            <div className="metric-body">
-                              <div className={`metric-value ${statusClass}`}>
-                                {score}/100
-                              </div>
-                              <div className="metric-subtext" style={{ marginTop: 4 }}>
-                                Status: <strong>{statusText}</strong>
-                              </div>
-                            </div>
-                          </>
-                        );
-                      })()}
+                      <div className="metric-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span className="metric-label">Total Transactions</span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" style={{ width: 16, height: 16, color: 'var(--subtext)' }}>
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                          <line x1="16" y1="2" x2="16" y2="6" />
+                          <line x1="8" y1="2" x2="8" y2="6" />
+                          <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                      </div>
+                      <div className="metric-body">
+                        <div className="metric-value">
+                          {expenses.length}
+                        </div>
+                        <div className="metric-subtext" style={{ marginTop: 4 }}>
+                          Total processed entries
+                        </div>
+                      </div>
                     </div>
 
                   </div>
@@ -1700,18 +1812,41 @@ function App() {
                           }
                         />
 
-                        <select
-                          value={budgetType}
-                          onChange={(e) =>
-                            setBudgetType(
-                              e.target.value
-                            )
-                          }
+                        <div 
+                          className="custom-select-wrapper"
+                          tabIndex={0}
+                          onBlur={(e) => {
+                            if (!e.currentTarget.contains(e.relatedTarget)) {
+                              setIsBudgetTypeDropdownOpen(false);
+                            }
+                          }}
                         >
-                          <option>Weekly</option>
-                          <option>Monthly</option>
-                          <option>Yearly</option>
-                        </select>
+                          <div 
+                            className="custom-select-trigger"
+                            onClick={() => setIsBudgetTypeDropdownOpen(!isBudgetTypeDropdownOpen)}
+                          >
+                            <span>{budgetType}</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`select-chevron ${isBudgetTypeDropdownOpen ? "open" : ""}`}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                            </svg>
+                          </div>
+                          {isBudgetTypeDropdownOpen && (
+                            <div className="custom-select-options">
+                              {["Weekly", "Monthly", "Yearly"].map((opt) => (
+                                <div 
+                                  key={opt}
+                                  className={`custom-select-option ${budgetType === opt ? "selected" : ""}`}
+                                  onClick={() => {
+                                    setBudgetType(opt);
+                                    setIsBudgetTypeDropdownOpen(false);
+                                  }}
+                                >
+                                  {opt}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
 
                         <button
                           onClick={saveBudget}
@@ -1816,19 +1951,56 @@ function App() {
                         </div>
 
                         <div className="input-group">
-
                           <label className="input-label">Date</label>
+                          <div className="date-segmented-control">
+                            <button
+                              type="button"
+                              className={`date-segment-btn ${dateMode === "today" ? "active" : ""}`}
+                              onClick={() => {
+                                setDateMode("today");
+                                setExpenseDate(new Date().toISOString().slice(0, 10));
+                              }}
+                            >
+                              Today
+                            </button>
+                            <button
+                              type="button"
+                              className={`date-segment-btn ${dateMode === "yesterday" ? "active" : ""}`}
+                              onClick={() => {
+                                setDateMode("yesterday");
+                                const d = new Date();
+                                d.setDate(d.getDate() - 1);
+                                setExpenseDate(d.toISOString().slice(0, 10));
+                              }}
+                            >
+                              Yesterday
+                            </button>
+                            <button
+                              type="button"
+                              className={`date-segment-btn ${dateMode === "custom" ? "active" : ""}`}
+                              onClick={() => setDateMode("custom")}
+                            >
+                              Custom Date
+                            </button>
+                          </div>
 
-                          <input
-                            type="date"
-                            value={expenseDate}
-                            onChange={(e) =>
-                              setExpenseDate(
-                                e.target.value
-                              )
-                            }
-                          />
-
+                          {dateMode === "custom" && (
+                            <div className="custom-date-picker-container" style={{ marginTop: 12 }}>
+                              <input
+                                type="date"
+                                value={expenseDate}
+                                onChange={(e) => setExpenseDate(e.target.value)}
+                                onClick={(e) => {
+                                  try {
+                                    if (e.target.showPicker) e.target.showPicker();
+                                  } catch (err) {
+                                    console.error(err);
+                                  }
+                                }}
+                                style={{ width: "100%" }}
+                              />
+                            </div>
+                          )}
                         </div>
 
                       </div>
@@ -1894,7 +2066,8 @@ function App() {
                               setExpenseTitle("")
                               setExpenseAmount("")
                               setExpenseCategory("")
-                              setExpenseDate("")
+                              setExpenseDate(new Date().toISOString().slice(0, 10))
+                              setDateMode("today")
                               setEditingId(null)
                             }}
                             style={{ width: 'auto' }}
@@ -2278,28 +2451,41 @@ function App() {
 
                       <label className="input-label">Budget Period Cycle</label>
 
-                      <select
-                        value={budgetType}
-                        onChange={(e) =>
-                          setBudgetType(
-                            e.target.value
-                          )
-                        }
+                      <div 
+                        className="custom-select-wrapper"
+                        tabIndex={0}
+                        onBlur={(e) => {
+                          if (!e.currentTarget.contains(e.relatedTarget)) {
+                            setIsBudgetTypeDropdownOpenTab(false);
+                          }
+                        }}
                       >
-
-                        <option>
-                          Weekly
-                        </option>
-
-                        <option>
-                          Monthly
-                        </option>
-
-                        <option>
-                          Yearly
-                        </option>
-
-                      </select>
+                        <div 
+                          className="custom-select-trigger"
+                          onClick={() => setIsBudgetTypeDropdownOpenTab(!isBudgetTypeDropdownOpenTab)}
+                        >
+                          <span>{budgetType}</span>
+                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`select-chevron ${isBudgetTypeDropdownOpenTab ? "open" : ""}`}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                          </svg>
+                        </div>
+                        {isBudgetTypeDropdownOpenTab && (
+                          <div className="custom-select-options">
+                            {["Weekly", "Monthly", "Yearly"].map((opt) => (
+                              <div 
+                                key={opt}
+                                className={`custom-select-option ${budgetType === opt ? "selected" : ""}`}
+                                onClick={() => {
+                                  setBudgetType(opt);
+                                  setIsBudgetTypeDropdownOpenTab(false);
+                                }}
+                              >
+                                {opt}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
 
                     </div>
 
@@ -2384,6 +2570,59 @@ function App() {
                     </div>
                   </div>
 
+                  <div className="input-group">
+                    <label className="input-label">Date</label>
+                    <div className="date-segmented-control">
+                      <button
+                        type="button"
+                        className={`date-segment-btn ${dateMode === "today" ? "active" : ""}`}
+                        onClick={() => {
+                          setDateMode("today");
+                          setExpenseDate(new Date().toISOString().slice(0, 10));
+                        }}
+                      >
+                        Today
+                      </button>
+                      <button
+                        type="button"
+                        className={`date-segment-btn ${dateMode === "yesterday" ? "active" : ""}`}
+                        onClick={() => {
+                          setDateMode("yesterday");
+                          const d = new Date();
+                          d.setDate(d.getDate() - 1);
+                          setExpenseDate(d.toISOString().slice(0, 10));
+                        }}
+                      >
+                        Yesterday
+                      </button>
+                      <button
+                        type="button"
+                        className={`date-segment-btn ${dateMode === "custom" ? "active" : ""}`}
+                        onClick={() => setDateMode("custom")}
+                      >
+                        Custom Date
+                      </button>
+                    </div>
+
+                    {dateMode === "custom" && (
+                      <div className="custom-date-picker-container" style={{ marginTop: 12 }}>
+                        <input
+                          type="date"
+                          value={expenseDate}
+                          onChange={(e) => setExpenseDate(e.target.value)}
+                          onClick={(e) => {
+                            try {
+                              if (e.target.showPicker) e.target.showPicker();
+                            } catch (err) {
+                              console.error(err);
+                            }
+                          }}
+                          style={{ width: "100%" }}
+                        />
+                      </div>
+                    )}
+                  </div>
+
                   {/* Collapsible toggle for advanced inputs */}
                   <div className="advanced-options-toggle">
                     <button
@@ -2391,27 +2630,19 @@ function App() {
                       className="toggle-collapse-btn"
                       onClick={() => setAdvancedQuickAdd(!advancedQuickAdd)}
                     >
-                      {advancedQuickAdd ? "Hide Details" : "Show Advanced Options"}
+                      {advancedQuickAdd ? "Hide Description" : "Add Description"}
                     </button>
                   </div>
 
                   {advancedQuickAdd && (
                     <div className="advanced-fields-box">
-                      <div className="input-group">
+                      <div className="input-group" style={{ marginBottom: 0 }}>
                         <label className="input-label">Description / Title</label>
                         <input
                           type="text"
                           placeholder={`Defaults to "${expenseCategory || 'Category'} Expense"`}
                           value={expenseTitle}
                           onChange={(e) => setExpenseTitle(e.target.value)}
-                        />
-                      </div>
-                      <div className="input-group">
-                        <label className="input-label">Date</label>
-                        <input
-                          type="date"
-                          value={expenseDate}
-                          onChange={(e) => setExpenseDate(e.target.value)}
                         />
                       </div>
                     </div>

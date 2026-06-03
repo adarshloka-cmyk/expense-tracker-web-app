@@ -19,7 +19,6 @@ export default function LandingPage({ onSignIn, onSignUp }) {
         </div>
         <nav className="landing-nav">
           <a href="#features">Features</a>
-          <a href="#simulator">Simulator</a>
           <a href="#why-us">Why TrackWise</a>
         </nav>
         <div className="landing-auth-buttons">
@@ -34,7 +33,7 @@ export default function LandingPage({ onSignIn, onSignUp }) {
           <div className="badge-tag">Track smarter. Spend wiser.</div>
           <h1 className="hero-title">
             Take control of <br />
-            <span className="gradient-text">every rupee.</span>
+            every rupee.
           </h1>
           <p className="hero-subtitle">
             Track expenses, understand spending habits, and generate professional financial reports from a single intelligent dashboard.
@@ -221,7 +220,7 @@ export default function LandingPage({ onSignIn, onSignUp }) {
               </svg>
             </div>
             <h3>Expense Tracking</h3>
-            <p>Add, edit, or remove transaction details with instantaneous rendering and secure Firestore synchronization.</p>
+            <p>Quickly add, edit, or remove expenses as you make them. Keep a clean digital ledger of all your transactions in one place.</p>
           </div>
 
           <div className="feature-grid-card">
@@ -231,7 +230,7 @@ export default function LandingPage({ onSignIn, onSignUp }) {
               </svg>
             </div>
             <h3>Budget Management</h3>
-            <p>Define dynamic cycle thresholds (Weekly, Monthly, Yearly) and let TrackWise notify you of threshold limits.</p>
+            <p>Set weekly, monthly, or yearly spending limits. Keep your spending in check and get clear warnings before you go over budget.</p>
           </div>
 
           <div className="feature-grid-card">
@@ -241,7 +240,7 @@ export default function LandingPage({ onSignIn, onSignUp }) {
               </svg>
             </div>
             <h3>Financial Analytics</h3>
-            <p>Monitor spending concentration metrics, category allocations, and outflow trends automatically computed from active data.</p>
+            <p>See exactly where your money goes with automatically generated charts. Spot trends and find ways to save without the manual math.</p>
           </div>
 
           <div className="feature-grid-card">
@@ -251,7 +250,7 @@ export default function LandingPage({ onSignIn, onSignUp }) {
               </svg>
             </div>
             <h3>Professional PDF Reports</h3>
-            <p>Compile details into styled financial statements featuring geometric brand stripes, insights summaries, and ledger appendix lists.</p>
+            <p>Export clean, easy-to-read PDF summaries of your finances. Perfect for sharing with accountants, business partners, or family.</p>
           </div>
 
           <div className="feature-grid-card">
@@ -260,8 +259,8 @@ export default function LandingPage({ onSignIn, onSignUp }) {
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
             </div>
-            <h3>Secure Cloud Storage</h3>
-            <p>Transactions are kept private and synced securely to your user account via Firebase Authentication and Firestore guards.</p>
+            <h3>Secure Cloud Sync</h3>
+            <p>Your data is private, secured, and synced automatically across your devices so you never lose your records.</p>
           </div>
         </div>
       </section>
@@ -279,7 +278,7 @@ export default function LandingPage({ onSignIn, onSignUp }) {
 
           <div className="why-column">
             <h4>02 / Financial Clarity</h4>
-            <p>Understand your financial cockpit immediately. Balance summaries and progress gauges shift colors dynamically (Emerald → Amber → Red) based on utilization.</p>
+            <p>Understand your financial overview immediately. Balance summaries and progress gauges shift colors dynamically (Emerald → Amber → Red) based on utilization.</p>
           </div>
 
           <div className="why-column">
@@ -300,38 +299,21 @@ export default function LandingPage({ onSignIn, onSignUp }) {
 
       {/* FOOTER */}
       <footer className="landing-footer">
-        <div className="footer-columns">
-          <div className="footer-brand-col">
-            <div className="footer-logo">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 20, height: 20 }}>
-                <path d="M12 2L2 22l10-4 10 4L12 2z" stroke="var(--primary)" strokeWidth="1.5" strokeDasharray="2 2"/>
-                <path d="M12 18V9" stroke="var(--primary)" strokeWidth="2"/>
-                <path d="M8 18v-4" stroke="var(--accent-blue)" strokeWidth="2"/>
-                <path d="M16 18v-7" stroke="var(--accent-gold)" strokeWidth="2"/>
-              </svg>
-              <span>TrackWise</span>
-            </div>
-            <p className="brand-pitch">Smart asset tracking and professional statements. Secure, minimal, and precise.</p>
+        <div className="footer-simple-content">
+          <div className="footer-brand">TrackWise</div>
+          <div className="footer-tagline">Track smarter. Spend wiser.</div>
+          <div className="footer-links">
+            <a href="mailto:adarsh.loka@gmail.com">Contact</a>
+            <span className="dot-separator">|</span>
+            <span 
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} 
+              style={{ cursor: 'pointer' }}
+            >
+              Back to Top
+            </span>
           </div>
-          <div className="footer-link-col">
-            <h5>Product</h5>
-            <a href="#features">Features</a>
-            <a href="#simulator">Simulator</a>
-            <a href="#why-us">Why Us</a>
-          </div>
-          <div className="footer-link-col">
-            <h5>Resources</h5>
-            <a href="#why-us">Overview</a>
-            <a href="#why-us">Analytics</a>
-          </div>
-          <div className="footer-link-col">
-            <h5>Security</h5>
-            <a href="#why-us">Privacy</a>
-            <a href="#why-us">Terms</a>
-          </div>
-        </div>
-        <div className="footer-bottom">
-          <p>&copy; 2026 TrackWise. All rights reserved. Built for financial sovereignty.</p>
+          <div className="footer-copy">&copy; 2026 TrackWise</div>
+          <div className="footer-author">Built by A.</div>
         </div>
       </footer>
     </div>
