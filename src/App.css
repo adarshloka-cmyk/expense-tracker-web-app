@@ -1182,3 +1182,46 @@ button.secondary-btn:hover {
     flex-direction: row-reverse;
   }
 }
+
+/* SESSION INITIALIZATION SPIN SCREEN */
+.app-loading-screen {
+  min-height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: var(--bg-gradient);
+  color: var(--text);
+  font-family: var(--sans);
+}
+
+.loading-spinner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+}
+
+.loading-spinner {
+  width: 46px;
+  height: 46px;
+  border: 4.5px solid var(--border);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.85s linear infinite;
+  box-shadow: var(--shadow-sm);
+}
+
+.loading-spinner-container p {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--subtext);
+  letter-spacing: 0.01em;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

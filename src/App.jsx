@@ -116,7 +116,10 @@ function App() {
 
   const [currentPage, setCurrentPage] = useState("login")
 
-  const [darkMode, setDarkMode] = useState(true)
+  const [darkMode, setDarkMode] = useState(() => {
+    const saved = localStorage.getItem("expense_tracker_dark_mode");
+    return saved !== null ? JSON.parse(saved) : true;
+  })
 
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -140,9 +143,17 @@ function App() {
 
   const [showChart, setShowChart] = useState(false)
 
-  // REDESIGN TABS & LAYOUT STATES
-  const [activeTab, setActiveTab] = useState("overview")
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  // STABILITY & PERSISTENCE STATES
+  const [currentUser, setCurrentUser] = useState(null)
+  const [authLoading, setAuthLoading] = useState(true)
+
+  const [activeTab, setActiveTab] = useState(() => {
+    return localStorage.getItem("expense_tracker_active_tab") || "overview";
+  })
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    return localStorage.getItem("expense_tracker_sidebar_collapsed") === "true";
+  })
 
   async function handleSignup() {
 
@@ -208,7 +219,10 @@ function App() {
 
   }
 
-  async function fetchExpenses() {
+  async function fetchExpenses(uid) {
+
+    const activeUid = uid || currentUser?.uid || auth.currentUser?.uid;
+    if (!activeUid) return;
 
     const q = query(
 
@@ -217,7 +231,7 @@ function App() {
       where(
         "uid",
         "==",
-        auth.currentUser.uid
+        activeUid
       )
 
     )
@@ -245,12 +259,18 @@ function App() {
 
   async function saveBudget() {
 
+    const activeUid = currentUser?.uid || auth.currentUser?.uid;
+    if (!activeUid) {
+      alert("User session not found")
+      return
+    }
+
     await setDoc(
 
       doc(
         db,
         "budgets",
-        auth.currentUser.uid
+        activeUid
       ),
 
       {
@@ -267,13 +287,16 @@ function App() {
 
   }
 
-  async function fetchBudget() {
+  async function fetchBudget(uid) {
+
+    const activeUid = uid || currentUser?.uid || auth.currentUser?.uid;
+    if (!activeUid) return;
 
     const budgetRef = doc(
 
       db,
       "budgets",
-      auth.currentUser.uid
+      activeUid
 
     )
 
@@ -307,6 +330,12 @@ function App() {
 
       return
 
+    }
+
+    const activeUid = currentUser?.uid || auth.currentUser?.uid;
+    if (!activeUid) {
+      alert("User session not found")
+      return
     }
 
     if (editingId) {
@@ -349,7 +378,7 @@ function App() {
 
           date: expenseDate,
 
-          uid: auth.currentUser.uid
+          uid: activeUid
 
         }
 
@@ -362,7 +391,7 @@ function App() {
     setExpenseCategory("")
     setExpenseDate("")
 
-    fetchExpenses()
+    fetchExpenses(activeUid)
 
   }
 
@@ -372,7 +401,8 @@ function App() {
       doc(db, "expenses", id)
     )
 
-    fetchExpenses()
+    const activeUid = currentUser?.uid || auth.currentUser?.uid;
+    fetchExpenses(activeUid)
 
   }
 
@@ -632,13 +662,17 @@ function App() {
   }
 
   useEffect(() => {
-
-    document.body.className =
-      darkMode
-        ? "dark"
-        : "light"
-
+    localStorage.setItem("expense_tracker_dark_mode", JSON.stringify(darkMode));
+    document.body.className = darkMode ? "dark" : "light";
   }, [darkMode])
+
+  useEffect(() => {
+    localStorage.setItem("expense_tracker_active_tab", activeTab);
+  }, [activeTab])
+
+  useEffect(() => {
+    localStorage.setItem("expense_tracker_sidebar_collapsed", sidebarCollapsed);
+  }, [sidebarCollapsed])
 
   useEffect(() => {
 
@@ -649,25 +683,32 @@ function App() {
 
         (user) => {
 
+          setCurrentUser(user)
+
           if (user) {
 
             setCurrentPage(
               "dashboard"
             )
 
-            fetchExpenses()
+            fetchExpenses(user.uid)
 
-            fetchBudget()
+            fetchBudget(user.uid)
 
           }
 
           else {
 
-            setCurrentPage(
-              "login"
-            )
+            setCurrentPage(prev => {
+              if (prev === "signup" || prev === "logout") {
+                return prev;
+              }
+              return "login";
+            })
 
           }
+
+          setAuthLoading(false)
 
         }
 
@@ -676,6 +717,17 @@ function App() {
     return () => unsubscribe()
 
   }, [])
+
+  if (authLoading) {
+    return (
+      <div className="app-loading-screen">
+        <div className="loading-spinner-container">
+          <div className="loading-spinner"></div>
+          <p>Verifying session...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
 
@@ -896,14 +948,14 @@ function App() {
               <div className="user-profile">
 
                 <div className="user-avatar">
-                  {auth.currentUser?.email ? auth.currentUser.email.slice(0, 2).toUpperCase() : "U"}
+                  {currentUser?.email ? currentUser.email.slice(0, 2).toUpperCase() : "U"}
                 </div>
 
                 <div className="user-details">
 
                   <span className="user-name">Welcome Back</span>
 
-                  <span className="user-email">{auth.currentUser?.email || "User"}</span>
+                  <span className="user-email">{currentUser?.email || "User"}</span>
 
                 </div>
 
