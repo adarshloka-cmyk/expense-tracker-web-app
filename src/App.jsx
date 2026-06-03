@@ -1145,7 +1145,18 @@ function App() {
 
               <div className="logo-wrapper">
 
-                <div className="logo-icon">E</div>
+                <div className="logo-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="url(#logoGrad)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+                    <defs>
+                      <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#e2b842" />
+                        <stop offset="100%" stopColor="#10b981" />
+                      </linearGradient>
+                    </defs>
+                    <circle cx="12" cy="12" r="9" stroke="url(#logoGrad)" strokeWidth="1.2" strokeDasharray="3 3"/>
+                    <path d="M9 15v-3M12 15V9M15 15v-8" strokeWidth="2"/>
+                  </svg>
+                </div>
 
                 <span className="logo-text">Expense Tracker</span>
 
@@ -1311,137 +1322,84 @@ function App() {
               {activeTab === "overview" && (
                 <>
 
-                  {/* PREMIUM HERO SECTION */}
-                  <div className="premium-hero-card">
+                  {/* PREMIUM FINANCIAL OVERVIEW */}
+                  <div className="fintech-overview-panel">
 
-                    <div className="hero-left">
-
-                      <p className="hero-subtitle">{budgetType} Balance Status</p>
-
-                      <h2 className="hero-title">Rs{budgetLeft}</h2>
-
-                      <div className="hero-budget-progress">
-
-                        <div className="progress-info">
-
-                          <span>Spent: Rs{totalSpent}</span>
-
-                          <span>Limit: Rs{budget || 0}</span>
-
-                        </div>
-
-                        <div className="progress-track">
-
-                          <div
-                            className={`progress-bar ${
-                              (budget > 0 ? (totalSpent / budget) * 100 : 0) > 100
-                                ? "danger"
-                                : (budget > 0 ? (totalSpent / budget) * 100 : 0) > 80
-                                  ? "warning"
-                                  : ""
-                            }`}
-                            style={{ width: `${Math.min(budget > 0 ? (totalSpent / budget) * 100 : 0, 100)}%` }}
-                          ></div>
-
-                        </div>
-
+                    <div className="overview-header-row">
+                      <div className="overview-balance-block">
+                        <span className="overview-label">{budgetType} Net Balance</span>
+                        <h2 className={`overview-value ${budgetLeft >= 0 ? "positive" : "negative"}`}>
+                          Rs{budgetLeft}
+                        </h2>
                       </div>
-
+                      <div className="overview-meta-block">
+                        <span className="cycle-status-badge">
+                          <span className="pulse-dot"></span>
+                          {budgetType} Cycle Active
+                        </span>
+                      </div>
                     </div>
 
-                    <div className="hero-right">
-
-                      <span className="budget-pill">{budgetType} Cycle Active</span>
-
+                    <div className="overview-progress-bar-wrapper">
+                      <div className="progress-info-row">
+                        <span>Spent: <strong>Rs{totalSpent}</strong></span>
+                        <span>Limit: <strong>Rs{budget || 0}</strong></span>
+                      </div>
+                      <div className="overview-progress-track">
+                        <div
+                          className={`overview-progress-bar ${
+                            (budget > 0 ? (totalSpent / budget) * 100 : 0) > 100
+                              ? "danger"
+                              : (budget > 0 ? (totalSpent / budget) * 100 : 0) > 80
+                                ? "warning"
+                                : ""
+                          }`}
+                          style={{ width: `${Math.min(budget > 0 ? (totalSpent / budget) * 100 : 0, 100)}%` }}
+                        ></div>
+                      </div>
                     </div>
 
                   </div>
 
-                  {/* MODERN KPI CARDS */}
+                  {/* ELEVATED KPI CARDS */}
                   <div className="stats-grid">
 
                     <div className="stat-card">
-
                       <div className="stat-card-header">
-
-                        <span className="stat-trend negative">Total Debit</span>
-
-                        <div className="stat-card-icon red">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-                          </svg>
-                        </div>
-
+                        <span className="stat-card-label">Total Expenses</span>
+                        <span className="status-dot debit"></span>
                       </div>
-
-                      <p>Total Expenses</p>
-
-                      <h2>Rs{totalSpent}</h2>
-
+                      <h2 className="stat-card-value">Rs{totalSpent}</h2>
+                      <p className="stat-card-subtext">Total cash outflow</p>
                     </div>
 
                     <div className="stat-card">
-
                       <div className="stat-card-header">
-
-                        <span className={`stat-trend ${budgetLeft >= 0 ? "positive" : "negative"}`}>
-                          {budgetLeft >= 0 ? "Within Budget" : "Over Budget"}
-                        </span>
-
-                        <div className={`stat-card-icon ${budgetLeft >= 0 ? "green" : "red"}`}>
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <circle cx="12" cy="12" r="10" /><path d="m9 12 2 2 4-4" />
-                          </svg>
-                        </div>
-
+                        <span className="stat-card-label">Budget Left</span>
+                        <span className={`status-dot ${budgetLeft >= 0 ? "savings" : "debit"}`}></span>
                       </div>
-
-                      <p>Budget Left</p>
-
-                      <h2>Rs{budgetLeft}</h2>
-
+                      <h2 className={`stat-card-value ${budgetLeft >= 0 ? "" : "danger"}`}>Rs{budgetLeft}</h2>
+                      <p className="stat-card-subtext">{budgetLeft >= 0 ? "Remaining balance" : "Over budget limit"}</p>
                     </div>
 
                     <div className="stat-card">
-
                       <div className="stat-card-header">
-
-                        <span className="stat-trend positive">Monthly Span</span>
-
-                        <div className="stat-card-icon blue">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" />
-                          </svg>
-                        </div>
-
+                        <span className="stat-card-label">This Month</span>
+                        <span className="status-dot cycle"></span>
                       </div>
-
-                      <p>This Month</p>
-
-                      <h2>Rs{monthlySpent}</h2>
-
+                      <h2 className="stat-card-value">Rs{monthlySpent}</h2>
+                      <p className="stat-card-subtext">Current month spent</p>
                     </div>
 
                     <div className="stat-card">
-
                       <div className="stat-card-header">
-
-                        <span className="stat-trend positive">Latest activity</span>
-
-                        <div className="stat-card-icon purple">
-                          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M12 20V10M18 20V4M6 20v-4" />
-                          </svg>
-                        </div>
-
+                        <span className="stat-card-label">Latest Expense</span>
+                        <span className="status-dot activity"></span>
                       </div>
-
-                      <p>Latest Expense</p>
-
-                      <h2 style={{ fontSize: latestExpense.length > 12 ? "1.45rem" : "1.85rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <h2 className="stat-card-value latest-title" title={latestExpense}>
                         {latestExpense}
                       </h2>
-
+                      <p className="stat-card-subtext">Most recent debit</p>
                     </div>
 
                   </div>
@@ -1477,16 +1435,18 @@ function App() {
                             return (
                               <div className="expense-card" key={expense.id}>
                                 <div className="expense-left">
-                                  <div className="category-icon-bg" style={{ backgroundColor: cat.bg }}>
+                                  <div className="category-icon-bg">
                                     {cat.icon}
                                   </div>
                                   <div className="expense-meta-info">
                                     <h3>{expense.title}</h3>
                                     <div className="expense-meta-tags">
-                                      <span className="category-badge" style={{ backgroundColor: cat.bg, color: cat.color, border: `1px solid ${cat.border}` }}>
+                                      <span className="category-dot-badge">
+                                        <span className="cat-dot" style={{ backgroundColor: cat.color }}></span>
                                         {expense.category || "Other"}
                                       </span>
-                                      <small>{expense.date}</small>
+                                      <span className="tag-separator">•</span>
+                                      <small className="expense-date">{expense.date}</small>
                                     </div>
                                   </div>
                                 </div>
@@ -1517,7 +1477,7 @@ function App() {
                       </div>
 
                       {/* Quick Budget Setting Box */}
-                      <div className="budget-box" style={{ marginBottom: 24, padding: 16, background: 'var(--input)', borderRadius: 16 }}>
+                      <div className="budget-box">
 
                         <input
                           type="number"
@@ -1567,7 +1527,7 @@ function App() {
                             const cat = getCategoryDetails(category);
                             return (
                               <div key={category} style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                <div style={{ display: 'flex', justifyContent: 'between', fontSize: '0.85rem', fontWeight: 600 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 600 }}>
                                   <span style={{ display: 'flex', alignItems: 'center', gap: 6, flexGrow: 1 }}>
                                     <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: cat.color }}></span>
                                     {category}
@@ -1849,7 +1809,7 @@ function App() {
 
                             </Pie>
 
-                            <Tooltip contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }} />
+                            <Tooltip contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }} itemStyle={{ color: 'var(--text)' }} labelStyle={{ color: 'var(--subtext)' }} />
 
                             <Legend />
 
@@ -1881,7 +1841,7 @@ function App() {
 
                               <div className="expense-left">
 
-                                <div className="category-icon-bg" style={{ backgroundColor: cat.bg }}>
+                                <div className="category-icon-bg">
                                   {cat.icon}
                                 </div>
 
@@ -1890,10 +1850,12 @@ function App() {
                                   <h3>{expense.title}</h3>
 
                                   <div className="expense-meta-tags">
-                                    <span className="category-badge" style={{ backgroundColor: cat.bg, color: cat.color, border: `1px solid ${cat.border}` }}>
+                                    <span className="category-dot-badge">
+                                      <span className="cat-dot" style={{ backgroundColor: cat.color }}></span>
                                       {expense.category || "Other"}
                                     </span>
-                                    <small>{expense.date}</small>
+                                    <span className="tag-separator">•</span>
+                                    <small className="expense-date">{expense.date}</small>
                                   </div>
 
                                 </div>
@@ -1993,7 +1955,7 @@ function App() {
 
                             </Pie>
 
-                            <Tooltip contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }} />
+                            <Tooltip contentStyle={{ backgroundColor: 'var(--card)', borderColor: 'var(--border)', color: 'var(--text)' }} itemStyle={{ color: 'var(--text)' }} labelStyle={{ color: 'var(--subtext)' }} />
 
                             <Legend />
 
@@ -2037,7 +1999,7 @@ function App() {
 
                               <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 6 }}>
 
-                                <div style={{ display: 'flex', justifyContent: 'between', fontSize: '0.95rem', fontWeight: 700 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.95rem', fontWeight: 700 }}>
 
                                   <span>{data.name}</span>
 
