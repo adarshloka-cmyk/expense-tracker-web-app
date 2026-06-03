@@ -34,6 +34,7 @@ import {
 import jsPDF from 'jspdf'
 
 import './App.css'
+import LandingPage from './LandingPage'
 
 // PREMIUM CATEGORY MAPPINGS FOR ICONS AND STYLES
 const CATEGORY_DETAILS = {
@@ -114,7 +115,7 @@ function getCategoryDetails(category) {
 
 function App() {
 
-  const [currentPage, setCurrentPage] = useState("login")
+  const [currentPage, setCurrentPage] = useState("landing")
 
   const [darkMode, setDarkMode] = useState(() => {
     const saved = localStorage.getItem("expense_tracker_dark_mode");
@@ -432,14 +433,14 @@ function App() {
     // --------------------------------------------------
     
     // Left decorative brand bar
-    pdf.setFillColor(30, 27, 75); // Deep Indigo
+    pdf.setFillColor(8, 11, 22); // Deep Navy
     pdf.rect(0, 0, 15, 297, "F");
 
-    // Geometric branding vectors (Logo mark)
-    pdf.setFillColor(79, 70, 229); // Accent Indigo
-    pdf.rect(40, 75, 12, 12, "F");
-    pdf.setFillColor(6, 182, 212); // Cyan Dot
-    pdf.circle(58, 81, 6, "F");
+    // Geometric branding vectors (Logo mark - Growth Compass ascending bars)
+    pdf.setFillColor(16, 185, 129); // Emerald
+    pdf.rect(40, 78, 6, 12, "F");
+    pdf.setFillColor(226, 184, 66); // Gold
+    pdf.rect(49, 72, 6, 18, "F");
 
     // Title & Typography block
     pdf.setFont("helvetica", "bold");
@@ -450,7 +451,7 @@ function App() {
     pdf.setFont("helvetica", "normal");
     pdf.setFontSize(13);
     pdf.setTextColor(100, 116, 139); // Slate 500
-    pdf.text("Expense Tracker Statement and Insights Summary", 40, 120);
+    pdf.text("TrackWise Statement and Insights Summary", 40, 120);
 
     // Elegant divider line
     pdf.setDrawColor(226, 232, 240);
@@ -781,7 +782,7 @@ function App() {
       pdf.setFont("helvetica", "normal");
       pdf.setFontSize(8);
       pdf.setTextColor(100, 116, 139);
-      pdf.text("Expense Tracker Financial Statement — Confidential", 20, 13);
+      pdf.text("TrackWise Financial Statement — Confidential", 20, 13);
       pdf.setDrawColor(226, 232, 240);
       pdf.setLineWidth(0.2);
       pdf.line(20, 15, 190, 15);
@@ -789,10 +790,10 @@ function App() {
       // Footer Rule
       pdf.line(20, 280, 190, 280);
       pdf.text(`Page ${i} of ${totalCount}`, 190, 285, { align: "right" });
-      pdf.text("Expense Tracker App — Statement Summary", 20, 285);
+      pdf.text("TrackWise — Statement Summary", 20, 285);
     }
 
-    pdf.save("Expense_Report.pdf");
+    pdf.save("TrackWise_Financial_Statement.pdf");
 
   }
 
@@ -957,10 +958,10 @@ function App() {
           else {
 
             setCurrentPage(prev => {
-              if (prev === "signup" || prev === "logout") {
+              if (prev === "signup" || prev === "logout" || prev === "login") {
                 return prev;
               }
-              return "login";
+              return "landing";
             })
 
           }
@@ -990,16 +991,23 @@ function App() {
 
     <div className="app">
 
+      {currentPage === "landing" && (
+        <LandingPage
+          onSignIn={() => setCurrentPage("login")}
+          onSignUp={() => setCurrentPage("signup")}
+        />
+      )}
+
       {currentPage === "login" && (
 
         <div className="auth-page-wrapper">
 
           <div className="glass-card">
 
-            <h1>Expense Tracker</h1>
+            <h1>Orbit Wealth</h1>
 
             <p className="subtitle">
-              Smart Finance Manager
+              Personal Financial Cockpit
             </p>
 
             <div className="input-group">
@@ -1146,19 +1154,19 @@ function App() {
               <div className="logo-wrapper">
 
                 <div className="logo-icon">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="url(#logoGrad)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
+                  <svg viewBox="0 0 24 24" fill="none" stroke="url(#logoGradTrackWise)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ width: 22, height: 22 }}>
                     <defs>
-                      <linearGradient id="logoGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#e2b842" />
-                        <stop offset="100%" stopColor="#10b981" />
+                      <linearGradient id="logoGradTrackWise" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stopColor="#10b981" />
+                        <stop offset="100%" stopColor="#e2b842" />
                       </linearGradient>
                     </defs>
-                    <circle cx="12" cy="12" r="9" stroke="url(#logoGrad)" strokeWidth="1.2" strokeDasharray="3 3"/>
-                    <path d="M9 15v-3M12 15V9M15 15v-8" strokeWidth="2"/>
+                    <path d="M12 2L2 22l10-4 10 4L12 2z" strokeWidth="1.5" strokeDasharray="2 2"/>
+                    <path d="M12 18V9M8 18v-4M16 18v-7" strokeWidth="2"/>
                   </svg>
                 </div>
 
-                <span className="logo-text">Expense Tracker</span>
+                <span className="logo-text">TrackWise</span>
 
               </div>
 
@@ -1284,9 +1292,9 @@ function App() {
 
               <div className="header-title-section">
 
-                <h1>Expense Tracker 👋</h1>
+                <h1>TrackWise 👋</h1>
 
-                <p>Keep track of your transactions and budget</p>
+                <p>Track smarter. Spend wiser.</p>
 
               </div>
 
