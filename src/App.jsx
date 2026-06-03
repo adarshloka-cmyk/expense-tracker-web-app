@@ -427,115 +427,372 @@ function App() {
 
     const pdf = new jsPDF()
 
-    pdf.setFont("helvetica")
+    // --------------------------------------------------
+    // PAGE 1: COVER PAGE
+    // --------------------------------------------------
+    
+    // Left decorative brand bar
+    pdf.setFillColor(30, 27, 75); // Deep Indigo
+    pdf.rect(0, 0, 15, 297, "F");
 
-    pdf.setFontSize(24)
+    // Geometric branding vectors (Logo mark)
+    pdf.setFillColor(79, 70, 229); // Accent Indigo
+    pdf.rect(40, 75, 12, 12, "F");
+    pdf.setFillColor(6, 182, 212); // Cyan Dot
+    pdf.circle(58, 81, 6, "F");
 
-    pdf.text(
-      "Expense Tracker Report",
-      20,
-      20
-    )
+    // Title & Typography block
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(28);
+    pdf.setTextColor(15, 23, 42); // Slate 900
+    pdf.text("PERSONAL FINANCIAL REPORT", 40, 110);
 
-    pdf.setFontSize(14)
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(13);
+    pdf.setTextColor(100, 116, 139); // Slate 500
+    pdf.text("Expense Tracker Statement and Insights Summary", 40, 120);
 
-    pdf.text(
-      `Budget: Rs${budget}`,
-      20,
-      40
-    )
+    // Elegant divider line
+    pdf.setDrawColor(226, 232, 240);
+    pdf.setLineWidth(1);
+    pdf.line(40, 132, 140, 132);
 
-    pdf.text(
-      `Total Spent: Rs${totalSpent}`,
-      20,
-      50
-    )
+    // Meta Context Labels
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text("PREPARED FOR:", 40, 175);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(11);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(currentUser?.email || "User Account", 40, 182);
 
-    pdf.text(
-      `Remaining Budget: Rs${budgetLeft}`,
-      20,
-      60
-    )
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text("REPORT PERIOD:", 40, 202);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(11);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(`${budgetType || "Monthly"} Budget Cycle`, 40, 209);
 
-    pdf.text(
-      `Budget Type: ${budgetType}`,
-      20,
-      70
-    )
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text("GENERATION DATE:", 40, 229);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(11);
+    pdf.setTextColor(15, 23, 42);
+    const dateFormatted = new Date().toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    pdf.text(dateFormatted, 40, 236);
 
-    pdf.setFontSize(18)
+    // --------------------------------------------------
+    // PAGE 2: EXECUTIVE SUMMARY & INSIGHTS
+    // --------------------------------------------------
+    pdf.addPage();
 
-    pdf.text(
-      "Expense Details",
-      20,
-      90
-    )
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(18);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text("EXECUTIVE SUMMARY", 20, 30);
 
-    let y = 105
+    // Card 1: Total Budget
+    pdf.setDrawColor(226, 232, 240);
+    pdf.rect(20, 42, 80, 32, "S");
+    pdf.setFillColor(248, 250, 252);
+    pdf.rect(21, 43, 78, 30, "F");
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text("TOTAL BUDGET LIMIT", 26, 52);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(16);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text(`Rs ${budget || 0}`, 26, 66);
 
-    filteredExpenses.forEach(
-      (expense, index) => {
+    // Card 2: Total Expenses
+    pdf.rect(110, 42, 80, 32, "S");
+    pdf.setFillColor(248, 250, 252);
+    pdf.rect(111, 43, 78, 30, "F");
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text("TOTAL EXPENSES DEBITED", 116, 52);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(16);
+    pdf.setTextColor(239, 68, 68); // Red
+    pdf.text(`Rs ${totalSpent}`, 116, 66);
 
-        pdf.setFontSize(13)
+    // Card 3: Remaining Balance
+    pdf.rect(20, 84, 80, 32, "S");
+    pdf.setFillColor(248, 250, 252);
+    pdf.rect(21, 85, 78, 30, "F");
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text("REMAINING BALANCES", 26, 94);
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(16);
+    if (budgetLeft >= 0) {
+      pdf.setTextColor(16, 185, 129); // Green
+    } else {
+      pdf.setTextColor(239, 68, 68); // Red
+    }
+    pdf.text(`Rs ${budgetLeft}`, 26, 108);
 
-        pdf.text(
+    // Card 4: Budget Utilization Rate
+    pdf.rect(110, 84, 80, 32, "S");
+    pdf.setFillColor(248, 250, 252);
+    pdf.rect(111, 85, 78, 30, "F");
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(8);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text("BUDGET UTILIZATION RATE", 116, 94);
+    const utilizationRate = budget > 0 ? Math.round((totalSpent / budget) * 100) : 0;
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(16);
+    if (utilizationRate > 100) {
+      pdf.setTextColor(239, 68, 68); // Red warning
+    } else if (utilizationRate > 80) {
+      pdf.setTextColor(245, 158, 11); // Amber caution
+    } else {
+      pdf.setTextColor(79, 70, 229); // Indigo
+    }
+    pdf.text(`${utilizationRate}%`, 116, 108);
 
-          `${index + 1}. ${expense.title}`,
+    // Insights Box
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(14);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text("REAL-TIME SPENDING INSIGHTS", 20, 136);
 
-          20,
+    pdf.setDrawColor(226, 232, 240);
+    pdf.rect(20, 143, 170, 120, "S");
+    pdf.setFillColor(248, 250, 252);
+    pdf.rect(21, 144, 168, 118, "F");
 
-          y
+    // Insight computations
+    let peakCategory = "None";
+    let peakAmount = 0;
+    let minCategory = "None";
+    let minAmount = Infinity;
 
-        )
-
-        pdf.text(
-
-          `Category: ${expense.category}`,
-
-          80,
-
-          y
-
-        )
-
-        pdf.text(
-
-          `Rs${expense.amount}`,
-
-          150,
-
-          y
-
-        )
-
-        y += 10
-
-        pdf.text(
-
-          `Date: ${expense.date}`,
-
-          25,
-
-          y
-
-        )
-
-        y += 15
-
-        if (y > 270) {
-
-          pdf.addPage()
-
-          y = 20
-
-        }
-
+    Object.keys(categoryTotals).forEach(cat => {
+      const val = categoryTotals[cat];
+      if (val > peakAmount) {
+        peakAmount = val;
+        peakCategory = cat;
       }
-    )
+      if (val < minAmount) {
+        minAmount = val;
+        minCategory = cat;
+      }
+    });
+    if (minCategory === "None" || minAmount === Infinity) {
+      minCategory = "None";
+      minAmount = 0;
+    }
 
-    pdf.save(
-      "Expense_Report.pdf"
-    )
+    const concentrationRatio = totalSpent > 0 ? Math.round((peakAmount / totalSpent) * 100) : 0;
+    const savingsRatio = budget > 0 ? Math.round(((budget - totalSpent) / budget) * 100) : 0;
+
+    // Insight Text
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9.5);
+    pdf.setTextColor(15, 23, 42);
+    
+    // Concentration
+    pdf.text("Spending Concentration:", 26, 160);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(70, 80, 95);
+    pdf.text(`Your top category (${peakCategory}) represents ${concentrationRatio}% of total spending.`, 72, 160);
+
+    // Highest
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(15, 23, 42);
+    pdf.text("Peak Expense Category:", 26, 180);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(70, 80, 95);
+    pdf.text(`Highest allocation is ${peakCategory} with a total debit of Rs ${peakAmount}.`, 72, 180);
+
+    // Lowest
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(15, 23, 42);
+    pdf.text("Min Expense Category:", 26, 200);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(70, 80, 95);
+    pdf.text(`Lowest allocation is ${minCategory} with a total debit of Rs ${minAmount}.`, 72, 200);
+
+    // Counts
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(15, 23, 42);
+    pdf.text("Transaction Count:", 26, 220);
+    pdf.setFont("helvetica", "normal");
+    pdf.setTextColor(70, 80, 95);
+    pdf.text(`A total of ${expenses.length} transaction entries have been processed in this cycle.`, 72, 220);
+
+    // Overall Rating
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(15, 23, 42);
+    pdf.text("Cycle Balance Rating:", 26, 240);
+    let statusRating = "Optimized Balance Flow";
+    let statusColor = [16, 185, 129]; // Green
+    if (utilizationRate > 100) {
+      statusRating = "Budget Overrun Warning";
+      statusColor = [239, 68, 68]; // Red
+    } else if (utilizationRate > 80) {
+      statusRating = "Caution Threshold Reached";
+      statusColor = [245, 158, 11]; // Amber
+    }
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(statusColor[0], statusColor[1], statusColor[2]);
+    pdf.text(`${statusRating} (Savings Rate: ${savingsRatio}%)`, 72, 240);
+
+    // --------------------------------------------------
+    // PAGE 3: CATEGORY VISUAL ALLOCATIONS
+    // --------------------------------------------------
+    pdf.addPage();
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(18);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text("FINANCIAL ANALYTICS", 20, 30);
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9.5);
+    pdf.setTextColor(100, 116, 139);
+    pdf.text("Allocated spending distributions represented as progress margins.", 20, 37);
+
+    const categoriesAvailable = ["Food", "Travel", "Shopping", "Bills", "Entertainment"];
+    let barY = 54;
+
+    categoriesAvailable.forEach((category) => {
+      const amt = categoryTotals[category] || 0;
+      const pct = totalSpent > 0 ? (amt / totalSpent) * 100 : 0;
+
+      // Label
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(category, 20, barY);
+
+      // Value & %
+      pdf.setFont("helvetica", "bold");
+      pdf.setFontSize(10);
+      pdf.setTextColor(79, 70, 229);
+      pdf.text(`Rs ${amt} (${Math.round(pct)}%)`, 190, barY, { align: "right" });
+
+      // Bar Background Track
+      pdf.setFillColor(241, 245, 249);
+      pdf.rect(20, barY + 3, 170, 5, "F");
+
+      // Bar Fill
+      const styleCat = getCategoryDetails(category);
+      let cleanHex = styleCat.color.replace('#', '');
+      let rFill = parseInt(cleanHex.substring(0, 2), 16);
+      let gFill = parseInt(cleanHex.substring(2, 4), 16);
+      let bFill = parseInt(cleanHex.substring(4, 6), 16);
+
+      pdf.setFillColor(rFill, gFill, bFill);
+      pdf.rect(20, barY + 3, Math.min((pct / 100) * 170, 170), 5, "F");
+
+      barY += 25;
+    });
+
+    // --------------------------------------------------
+    // PAGE 4+: TRANSACTION APPENDIX
+    // --------------------------------------------------
+    pdf.addPage();
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(18);
+    pdf.setTextColor(15, 23, 42);
+    pdf.text("TRANSACTION LEDGER APPENDIX", 20, 30);
+
+    // Draw Table Header
+    pdf.setFillColor(30, 27, 75); // Deep Navy Header
+    pdf.rect(20, 40, 170, 10, "F");
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(9);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text("No.", 23, 46);
+    pdf.text("Title", 34, 46);
+    pdf.text("Category", 96, 46);
+    pdf.text("Date", 132, 46);
+    pdf.text("Amount", 188, 46, { align: "right" });
+
+    let tableY = 50;
+
+    filteredExpenses.forEach((expense, index) => {
+      // Check page break height threshold
+      if (tableY > 265) {
+        pdf.addPage();
+        
+        // Re-draw header on new page
+        pdf.setFillColor(30, 27, 75);
+        pdf.rect(20, 25, 170, 10, "F");
+
+        pdf.setFont("helvetica", "bold");
+        pdf.setFontSize(9);
+        pdf.setTextColor(255, 255, 255);
+        pdf.text("No.", 23, 31);
+        pdf.text("Title", 34, 31);
+        pdf.text("Category", 96, 31);
+        pdf.text("Date", 132, 31);
+        pdf.text("Amount", 188, 31, { align: "right" });
+
+        tableY = 35;
+      }
+
+      // Alternating row styling
+      if (index % 2 === 0) {
+        pdf.setFillColor(248, 250, 252);
+        pdf.rect(20, tableY, 170, 10, "F");
+      }
+
+      // Data printing
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(9);
+      pdf.setTextColor(15, 23, 42);
+      pdf.text(String(index + 1), 23, tableY + 6.5);
+
+      let titleStr = expense.title || "";
+      if (titleStr.length > 25) titleStr = titleStr.substring(0, 22) + "...";
+      pdf.text(titleStr, 34, tableY + 6.5);
+
+      pdf.text(expense.category || "Other", 96, tableY + 6.5);
+      pdf.text(expense.date || "", 132, tableY + 6.5);
+
+      pdf.setFont("helvetica", "bold");
+      pdf.text(`Rs ${expense.amount}`, 188, tableY + 6.5, { align: "right" });
+
+      tableY += 10;
+    });
+
+    // --------------------------------------------------
+    // GLOBAL PASS: HEADER & FOOTER CONFIGURATION
+    // --------------------------------------------------
+    const totalCount = pdf.internal.getNumberOfPages();
+    for (let i = 2; i <= totalCount; i++) {
+      pdf.setPage(i);
+
+      // Header Rule
+      pdf.setFont("helvetica", "normal");
+      pdf.setFontSize(8);
+      pdf.setTextColor(100, 116, 139);
+      pdf.text("Expense Tracker Financial Statement — Confidential", 20, 13);
+      pdf.setDrawColor(226, 232, 240);
+      pdf.setLineWidth(0.2);
+      pdf.line(20, 15, 190, 15);
+
+      // Footer Rule
+      pdf.line(20, 280, 190, 280);
+      pdf.text(`Page ${i} of ${totalCount}`, 190, 285, { align: "right" });
+      pdf.text("Expense Tracker App — Statement Summary", 20, 285);
+    }
+
+    pdf.save("Expense_Report.pdf");
 
   }
 
