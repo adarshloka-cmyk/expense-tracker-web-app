@@ -36,6 +36,7 @@ import jsPDF from 'jspdf'
 
 import './App.css'
 import LandingPage from './LandingPage'
+import { usePWAInstall } from './usePWAInstall'
 
 // PREMIUM CATEGORY MAPPINGS FOR ICONS AND STYLES
 const CATEGORY_DETAILS = {
@@ -139,6 +140,30 @@ function getMerchantAvatar(title, category) {
 }
 
 function App() {
+
+  const { showInstallBanner, install, dismissBanner, showToast, closeToast } = usePWAInstall()
+  const [isBannerHiding, setIsBannerHiding] = useState(false)
+  const [isToastHiding, setIsToastHiding] = useState(false)
+
+  const handleInstallClick = async () => {
+    await install()
+  }
+
+  const handleMaybeLaterClick = () => {
+    setIsBannerHiding(true)
+    setTimeout(() => {
+      dismissBanner()
+      setIsBannerHiding(false)
+    }, 300)
+  }
+
+  const handleCloseToastClick = () => {
+    setIsToastHiding(true)
+    setTimeout(() => {
+      closeToast()
+      setIsToastHiding(false)
+    }, 300)
+  }
 
   const [currentPage, setCurrentPage] = useState("landing")
 
@@ -2698,6 +2723,56 @@ function App() {
 
         </div>
 
+      )}
+
+      {/* PWA Install Banner */}
+      {(showInstallBanner || isBannerHiding) && (
+        <div className={`pwa-install-banner ${isBannerHiding ? 'hiding' : ''}`}>
+          <div className="pwa-banner-header">
+            <div className="pwa-banner-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M12 2L2 22l10-4 10 4L12 2z" stroke="white" strokeWidth="1.5" strokeDasharray="2 2"/>
+                <path d="M12 18V9" stroke="white" strokeWidth="2"/>
+                <path d="M8 18v-4" stroke="rgba(255,255,255,0.7)" strokeWidth="2"/>
+                <path d="M16 18v-7" stroke="rgba(255,255,255,0.7)" strokeWidth="2"/>
+              </svg>
+            </div>
+            <div className="pwa-banner-text">
+              <h3 className="pwa-banner-title">Install TrackWise</h3>
+              <p className="pwa-banner-subtitle">
+                Use TrackWise like a native app with offline access and faster launch times.
+              </p>
+            </div>
+          </div>
+          <div className="pwa-banner-actions">
+            <button className="pwa-btn-secondary" onClick={handleMaybeLaterClick}>
+              Maybe Later
+            </button>
+            <button className="pwa-btn-primary" onClick={handleInstallClick}>
+              Install
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* PWA Success Toast */}
+      {(showToast || isToastHiding) && (
+        <div className={`pwa-toast ${isToastHiding ? 'hiding' : ''}`}>
+          <div className="pwa-toast-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <div className="pwa-toast-content">
+            <h4 className="pwa-toast-title">TrackWise Installed</h4>
+            <p className="pwa-toast-message">
+              TrackWise is now available from your desktop and home screen.
+            </p>
+          </div>
+          <button className="pwa-toast-close" onClick={handleCloseToastClick} aria-label="Close notification">
+            &times;
+          </button>
+        </div>
       )}
 
     </div>
