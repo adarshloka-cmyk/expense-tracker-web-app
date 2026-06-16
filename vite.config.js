@@ -8,8 +8,8 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       manifest: {
-        name: "TrackWise",
-        short_name: "TW",
+name: "TrackWise - Expense Tracker",
+short_name: "TrackWise",
         description: "Personal finance and expense tracking application",
         theme_color: "#0F172A",
         background_color: "#0F172A",
